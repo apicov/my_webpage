@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, jsonify
 import json
 import time
+
+from dotenv import load_dotenv
+load_dotenv(override=True)
 from  ai_assistant import Assistant
 
 
