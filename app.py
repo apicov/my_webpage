@@ -1,15 +1,17 @@
 from flask import Flask, render_template, request, jsonify
 import json
 import time
+from  ai_assistant import Assistant
+
 
 app = Flask(__name__)
 
 # Your professional info - customize this
 PERSONAL_INFO = {
-    "name": "Your Name",
-    "title": "Python Developer & ML Engineer", 
-    "bio": "Passionate about building intelligent systems with Python, machine learning, and IoT. I specialize in creating interactive applications that solve real-world problems using cutting-edge AI technologies.",
-    "skills": ["Python", "Machine Learning", "LLMs & NLP", "IoT & Embedded Systems", "Data Science", "Deep Learning"],
+    "name": "Antonio Pico",
+    "title": "Computer Scientist", 
+    "bio": "Computer Science PhD with experience in machine learning, deep learning, and embedded systems. Currently expanding my focus into two cutting-edge areas: TinyML and LLM agents.",
+    "skills": ["Machine Learning", "Deep Learning", "LLMs & Agents", "IoT & Embedded Systems", "TinyML", "Robotics"],
     "experience": [
         {
             "role": "Senior ML Engineer",
