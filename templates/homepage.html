@@ -233,9 +233,10 @@
                             <h3 class="text-3xl font-bold text-gray-800 mb-4">Ask My AI Assistant</h3>
                             <p class="text-lg text-gray-600">
                                 Want to know more about my experience, skills, or projects? 
-                                Chat with my AI assistant - it can show images, create visualizations, and more!
+                                Chat with my AI assistant
                             </p>
                         </div>
+                        <!-- - it can show images, create visualizations, and more! -->
                         <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                             <!-- Chat Header -->
                             <div class="gradient-bg text-white p-4">
@@ -262,20 +263,7 @@
                             </div>
                             <!-- Chat Messages -->
                             <div id="chat-messages" class="chat-container overflow-y-auto p-4 bg-gray-50 smooth-scroll">
-                                <div class="mb-4 message-fade-in">
-                                    <div class="flex items-start">
-                                        <div class="w-8 h-8 rounded-full gradient-bg flex items-center justify-center mr-3 mt-1">
-                                            <i class="fas fa-robot text-white text-sm"></i>
-                                        </div>
-                                        <div class="bg-white p-3 rounded-lg shadow-sm max-w-md">
-                                            <p class="text-gray-800">
-                                                Hi! I'm {{ info.name }}'s AI assistant. I can tell you about their 
-                                                professional experience, show you project images, create visualizations, 
-                                                and even stream video content. What would you like to explore?
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+                                <!-- Initial message will be added by JavaScript -->
                             </div>
                             <!-- Restore Media Options section -->
                             <div id="media-options" class="hidden p-4 bg-blue-50 border-t border-blue-200">
@@ -373,6 +361,7 @@
     <script>
         let isTyping = false;
         let mediaOptionsVisible = false;
+        const messages = [];
 
         function scrollToChat() {
             document.getElementById('chat-section').scrollIntoView({ 
@@ -387,11 +376,12 @@
 
         function handleKeyPress(event) {
             if (event.key === 'Enter' && !isTyping) {
-                sendMessage();
+                sendMessages();
             }
         }
 
         function clearChat() {
+            messages = [];
             const chatMessages = document.getElementById('chat-messages');
             chatMessages.innerHTML = `
                 <div class="mb-4 message-fade-in">
@@ -417,7 +407,7 @@
             return div.innerHTML;
         }
 
-        async function sendMessage() {
+        async function sendMessages() {
             if (isTyping) return;
 
             const input = document.getElementById('chat-input');
@@ -436,6 +426,10 @@
             // Show typing indicator immediately
             showTypingIndicator();
 
+            // Add user message to messages array
+            messages.push({ role: 'user', content: message });
+            console.log('Messages:', messages);
+
             try {
                 // Make the API call with a timeout
                 const response = await fetchWithTimeout('/api/chat', {
@@ -443,7 +437,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ messages: messages })
                 }, 10000); // 10 second timeout
 
                 console.log('Response status:', response.status);
@@ -457,7 +451,17 @@
 
                 // Check for valid response
                 if (data && (data.status === 'success' || data.response)) {
-                    addMessage('assistant', data.response, data.media);
+
+                    // Add assistant messages to messages array
+                    if (Array.isArray(data.response)) {
+                        data.response.forEach(message => {
+                            //messages.push({ role: message.role, content: message.content });
+                            messages.push(message);
+                        });
+                    } 
+
+                    // Add last assistant message to chat
+                    addMessage('assistant', data.response[data.response.length - 1].content, data.media);
                 } else {
                     throw new Error('Invalid response format');
                 }
@@ -771,6 +775,32 @@
             document.getElementById('live-media-section').classList.add('hidden');
             document.getElementById('hero-section').classList.remove('hidden');
         }
+
+        // Add a user message to the conversation
+        function addUserMessage(content) {
+            const userMessage = {
+                role: 'user',
+                content: content
+            };
+            messages.push(userMessage);
+        }
+
+        // Add an assistant message to the conversation
+        function addAssistantMessage(content) {
+            const assistantMessage = {
+                role: 'assistant',
+                content: content
+            };
+            messages.push(assistantMessage);
+        }
+
+        //const initialMessage = `Hi! I'm {{ info.name }}'s AI assistant. I can tell you about his professional experience, show you project images, create visualizations, and even stream video content. What would you like to explore?`;
+        const initialMessage = `Hi! I'm {{ info.name }}'s AI assistant. I'm here to provide information about his professional background, skills, and experience. I can help you learn more about his career, projects, and achievements. What would you like to know?`;
+        document.addEventListener('DOMContentLoaded', function() {
+
+            addMessage('assistant', initialMessage);
+            addAssistantMessage(initialMessage);
+        });
     </script>
 </body>
 </html>

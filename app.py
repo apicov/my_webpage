@@ -65,38 +65,11 @@ KNOWLEDGE_BASE = {
     "approach": "I believe in building practical, scalable solutions. I focus on understanding business requirements first, then selecting the right tools and techniques. I'm passionate about clean code, proper testing, and continuous learning."
 }
 
-def get_ai_response(user_message):
+def get_ai_response(messages):
     """Simple keyword-based response system. Replace with your actual LLM integration."""
-    user_message = user_message.lower()
+    print( messages)
+    return messages
     
-    # Check for keywords and return relevant information
-    if any(word in user_message for word in ["skill", "technology", "programming", "language"]):
-        return KNOWLEDGE_BASE["skills"]
-    
-    elif any(word in user_message for word in ["experience", "work", "job", "career"]):
-        return KNOWLEDGE_BASE["experience"]
-    
-    elif any(word in user_message for word in ["project", "built", "created", "developed"]):
-        return KNOWLEDGE_BASE["projects"]
-    
-    elif any(word in user_message for word in ["education", "study", "degree", "university"]):
-        return KNOWLEDGE_BASE["education"]
-    
-    elif any(word in user_message for word in ["tool", "framework", "tech stack"]):
-        return KNOWLEDGE_BASE["technologies"]
-    
-    elif any(word in user_message for word in ["approach", "methodology", "philosophy", "how"]):
-        return KNOWLEDGE_BASE["approach"]
-    
-    elif any(word in user_message for word in ["hello", "hi", "hey"]):
-        return f"Hello! I'm {PERSONAL_INFO['name']}'s AI assistant. I can tell you about their professional background, skills, experience, and projects. What would you like to know?"
-    
-    elif any(word in user_message for word in ["contact", "email", "reach"]):
-        return "You can reach out through the contact form on this website, or connect via LinkedIn. I'd be happy to discuss potential collaborations or opportunities!"
-    
-    else:
-        return "I can tell you about my professional skills, experience, projects, education, technologies I work with, or my general approach to problem-solving. What interests you most?"
-
 @app.route('/')
 def home():
     return render_template('homepage.html', info=PERSONAL_INFO)
@@ -105,13 +78,13 @@ def home():
 def chat():
     try:
         data = request.get_json()
-        user_message = data.get('message', '').strip()
+        messages = data.get('messages', [])
         
-        if not user_message:
+        if not messages:
             return jsonify({'error': 'No message provided'}), 400
         
         # Get AI response (replace this with your actual LLM call)
-        ai_response = get_ai_response(user_message)
+        ai_response = get_ai_response(messages)
         time.sleep(1)
 
         
