@@ -65,6 +65,17 @@ KNOWLEDGE_BASE = {
     "approach": "I believe in building practical, scalable solutions. I focus on understanding business requirements first, then selecting the right tools and techniques. I'm passionate about clean code, proper testing, and continuous learning."
 }
 
+def message_to_dict(msg):
+    # If it's already a dict, return as is
+    if isinstance(msg, dict):
+        return msg
+    # If it has a .to_dict() method, use it
+    if hasattr(msg, 'to_dict'):
+        return msg.to_dict()
+    # Otherwise, use vars() (works for most objects)
+    return vars(msg)
+
+
 def get_ai_response(messages):
     response = assistant.get_response(messages)
     return response
@@ -78,17 +89,20 @@ def chat():
     try:
         data = request.get_json()
         messages = data.get('messages', [])
+        print(messages)
         
         if not messages:
             return jsonify({'error': 'No message provided'}), 400
         
-        # Get AI response (replace this with your actual LLM call)
+        # Get AI response
         ai_response = get_ai_response(messages)
+        messages_dicts = [message_to_dict(m) for m in ai_response]
+        print(messages_dicts)
         #time.sleep(1)
 
         
         return jsonify({
-            'response': ai_response,
+            'response': messages_dicts,
             'status': 'success'
         })
     

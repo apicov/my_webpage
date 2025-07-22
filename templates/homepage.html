@@ -296,7 +296,7 @@
                                     >
                                     <button 
                                         id="send-button"
-                                        onclick="sendMessage()" 
+                                        onclick="sendMessages()" 
                                         class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <i class="fas fa-paper-plane"></i>
@@ -687,17 +687,17 @@
 
         function requestVisualization() {
             document.getElementById('chat-input').value = "Can you show me a chart of your technical skills?";
-            sendMessage();
+            sendMessages();
         }
 
         function requestImage() {
             document.getElementById('chat-input').value = "Can you show me an image of one of your projects?";
-            sendMessage();
+            sendMessages();
         }
 
         function requestVideo() {
             document.getElementById('chat-input').value = "Can you show me a video demo of your work?";
-            sendMessage();
+            sendMessages();
         }
 
         function handleFileUpload(event) {
