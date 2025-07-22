@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import json
 import time
+import os
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
@@ -8,6 +9,17 @@ from  ai_assistant import Assistant
 
 
 app = Flask(__name__)
+
+name = os.getenv("MY_NAME")
+last_name = os.getenv("MY_LAST_NAME")
+
+# Load the summary and resume
+with open("./data/summary.txt", "r", encoding="utf-8") as f:
+    summary = f.read()
+with open("./data/resume.md", "r", encoding="utf-8") as f:
+    resume = f.read()
+
+assistant = Assistant(name, last_name, summary, resume)
 
 # Your professional info - customize this
 PERSONAL_INFO = {
