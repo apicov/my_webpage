@@ -410,6 +410,13 @@
             return div.innerHTML;
         }
 
+        function formatMessageText(text) {
+            // First escape HTML to prevent XSS
+            const escapedText = escapeHtml(text);
+            // Then convert \n to <br> tags for line breaks
+            return escapedText.replace(/\n/g, '<br>');
+        }
+
         async function sendMessages() {
             if (isTyping) return;
 
@@ -580,7 +587,7 @@
                 messageDiv.innerHTML = `
                     <div class="flex items-start justify-end">
                         <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-lg shadow-sm max-w-md mr-3">
-                            <p>${escapeHtml(message)}</p>
+                            <p>${formatMessageText(message)}</p>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center mt-1">
                             <i class="fas fa-user text-white text-sm"></i>
@@ -595,7 +602,7 @@
                             <i class="fas fa-robot text-white text-sm"></i>
                         </div>
                         <div class="bg-white p-3 rounded-lg shadow-sm max-w-md">
-                            <p class="text-gray-800">${escapeHtml(message)}</p>
+                            <p class="text-gray-800">${formatMessageText(message)}</p>
                             ${mediaContent}
                         </div>
                     </div>
