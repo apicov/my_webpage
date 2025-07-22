@@ -21,49 +21,9 @@ with open("./data/resume.md", "r", encoding="utf-8") as f:
 
 assistant = Assistant(name, last_name, summary, resume)
 
-# Your professional info - customize this
-PERSONAL_INFO = {
-    "name": "Antonio Pico",
-    "title": "Computer Scientist", 
-    "bio": "Computer Science PhD with experience in machine learning, deep learning, and embedded systems. Currently expanding my focus into two cutting-edge areas: TinyML and LLM agents.",
-    "skills": ["Machine Learning", "Deep Learning", "LLMs & Agents", "IoT & Embedded Systems", "TinyML", "Robotics"],
-    "experience": [
-        {
-            "role": "Senior ML Engineer",
-            "company": "Tech Company",
-            "period": "2022 - Present",
-            "description": "Developed and deployed machine learning models for production systems"
-        },
-        {
-            "role": "Python Developer", 
-            "company": "Previous Company",
-            "period": "2020 - 2022",
-            "description": "Built scalable web applications and data processing pipelines"
-        }
-    ],
-    "education": [
-        {
-            "degree": "Master's in Computer Science",
-            "school": "University Name",
-            "year": "2020"
-        }
-    ]
-}
-
-# Knowledge base for your AI assistant
-KNOWLEDGE_BASE = {
-    "skills": "I'm proficient in Python, machine learning, natural language processing, IoT systems, and embedded programming. I work with frameworks like TensorFlow, PyTorch, scikit-learn, and have experience with both supervised and unsupervised learning.",
-    
-    "experience": "I have 4+ years of experience in Python development and 3+ years specifically in ML engineering. I've worked on projects ranging from chatbots and recommendation systems to IoT data processing and real-time analytics.",
-    
-    "projects": "Some of my notable projects include: an AI-powered chatbot for customer service, an IoT sensor network for environmental monitoring, a recommendation engine for e-commerce, and several deep learning models for image and text classification.",
-    
-    "education": "I have a Master's degree in Computer Science with a focus on AI and machine learning. I'm also constantly learning through online courses, research papers, and hands-on projects.",
-    
-    "technologies": "I work with Python, TensorFlow, PyTorch, scikit-learn, pandas, NumPy, Flask, FastAPI, Docker, AWS, Git, SQL databases, MongoDB, MQTT for IoT, Arduino, Raspberry Pi, and various cloud platforms.",
-    
-    "approach": "I believe in building practical, scalable solutions. I focus on understanding business requirements first, then selecting the right tools and techniques. I'm passionate about clean code, proper testing, and continuous learning."
-}
+# Load personal info from JSON file
+with open('./data/personal_info.json', 'r', encoding='utf-8') as f:
+    PERSONAL_INFO = json.load(f)
 
 def message_to_dict(msg):
     # If it's already a dict, return as is
