@@ -381,7 +381,7 @@
         }
 
         function clearChat() {
-            messages = [];
+            messages.length = 0; //clear the array
             const chatMessages = document.getElementById('chat-messages');
             chatMessages.innerHTML = `
                 <div class="mb-4 message-fade-in">
