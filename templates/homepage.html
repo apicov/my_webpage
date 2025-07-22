@@ -188,9 +188,12 @@
                                 {{ info.bio }}
                             </p>
                             <div class="flex flex-wrap gap-3 mt-2">
-                                <button class="bg-white text-purple-600 px-5 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-sm lg:text-base">
-                                    <i class="fas fa-download mr-2"></i>Download CV
-                                </button>
+                                <!-- Wrap the Download CV button in an <a> tag for download functionality -->
+                                <a href="/static/cv.pdf" download style="display:inline-block">
+                                    <button class="bg-white text-purple-600 px-5 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-sm lg:text-base flex items-center">
+                                        <i class="fas fa-download mr-2"></i>Download CV
+                                    </button>
+                                </a>
                                 <button onclick="scrollToChat()" class="border-2 border-white text-white px-5 py-2 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-colors text-sm lg:text-base">
                                     <i class="fas fa-comments mr-2"></i>Ask My AI Assistant
                                 </button>
