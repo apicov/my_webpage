@@ -66,9 +66,8 @@ KNOWLEDGE_BASE = {
 }
 
 def get_ai_response(messages):
-    """Simple keyword-based response system. Replace with your actual LLM integration."""
-    print( messages)
-    return messages
+    response = assistant.get_response(messages)
+    return response
     
 @app.route('/')
 def home():
@@ -85,7 +84,7 @@ def chat():
         
         # Get AI response (replace this with your actual LLM call)
         ai_response = get_ai_response(messages)
-        time.sleep(1)
+        #time.sleep(1)
 
         
         return jsonify({
