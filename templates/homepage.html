@@ -365,6 +365,8 @@
         let isTyping = false;
         let mediaOptionsVisible = false;
         const messages = [];
+        //const initialMessage = `Hi! I'm {{ info.name }}'s AI assistant. I can tell you about his professional experience, show you project images, create visualizations, and even stream video content. What would you like to explore?`;
+        const initialMessage = `Hi! I'm {{ info.name }}'s AI assistant. I'm here to provide information about his professional background, skills, and experience. I can help you learn more about his career, projects, and achievements. What would you like to know?`;
 
         function scrollToChat() {
             document.getElementById('chat-section').scrollIntoView({ 
@@ -386,22 +388,11 @@
         function clearChat() {
             messages.length = 0; //clear the array
             const chatMessages = document.getElementById('chat-messages');
-            chatMessages.innerHTML = `
-                <div class="mb-4 message-fade-in">
-                    <div class="flex items-start">
-                        <div class="w-8 h-8 rounded-full gradient-bg flex items-center justify-center mr-3 mt-1">
-                            <i class="fas fa-robot text-white text-sm"></i>
-                        </div>
-                        <div class="bg-white p-3 rounded-lg shadow-sm max-w-md">
-                            <p class="text-gray-800">
-                                Hi! I'm {{ info.name }}'s AI assistant. I can tell you about their 
-                                professional experience, show you project images, create visualizations, 
-                                and even stream video content. What would you like to explore?
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
+            chatMessages.innerHTML = '';
+            
+            // Add the initial message to both the display and messages array
+            addMessage('assistant', initialMessage);
+            addAssistantMessage(initialMessage);
         }
 
         function escapeHtml(text) {
@@ -804,8 +795,6 @@
             messages.push(assistantMessage);
         }
 
-        //const initialMessage = `Hi! I'm {{ info.name }}'s AI assistant. I can tell you about his professional experience, show you project images, create visualizations, and even stream video content. What would you like to explore?`;
-        const initialMessage = `Hi! I'm {{ info.name }}'s AI assistant. I'm here to provide information about his professional background, skills, and experience. I can help you learn more about his career, projects, and achievements. What would you like to know?`;
         document.addEventListener('DOMContentLoaded', function() {
 
             addMessage('assistant', initialMessage);
