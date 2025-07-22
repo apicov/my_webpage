@@ -356,7 +356,7 @@
     <!-- Footer -->
     <footer class="gradient-bg text-white py-8">
         <div class="container mx-auto px-4 text-center">
-            <p>&copy; 2024 {{ info.name }}. Built with Flask & Python</p>
+            <p>&copy; <span id="current-year"></span> {{ info.name }}. Built with Flask & Python</p>
         </div>
     </footer>
 
@@ -803,6 +803,11 @@
 
             addMessage('assistant', initialMessage);
             addAssistantMessage(initialMessage);
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('current-year').textContent = new Date().getFullYear();
         });
     </script>
 </body>
