@@ -5,6 +5,7 @@ import os
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
+print("Loaded .env file")
 from  ai_assistant import Assistant
 
 
