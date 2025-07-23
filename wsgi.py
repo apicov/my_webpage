@@ -15,6 +15,10 @@ try:
     python_path = os.path.join(activate_path, 'python')
     sys.executable = python_path
 
+    # Add site-packages path
+    site_packages_path = '/home/pico/miniconda3/envs/lino/lib/python3.10/site-packages'
+    sys.path.insert(0, site_packages_path)
+
     # Add project directory to Python path
     project_dir = '/var/www/apicov.xyz'
     sys.path.insert(0, project_dir)
