@@ -10,6 +10,10 @@ logging.basicConfig(
 )
 
 try:
+    # Add project directory to Python path
+    project_dir = '/var/www/apicov.xyz'
+    sys.path.insert(0, project_dir)
+
     # Add Conda environment paths
     conda_env_path = '/home/pico/miniconda3/envs/lino'
     sys.path.insert(0, os.path.join(conda_env_path, 'lib/python3.10/site-packages'))
