@@ -26,6 +26,9 @@ try:
     # Add project directory to Python path
     project_dir = '/var/www/apicov.xyz'
     sys.path.insert(0, project_dir)
+
+    # CHANGE WORKING DIRECTORY - Add this line
+    os.chdir(project_dir)  # Change to where your .env file is located
     
     # Log system information
     logging.debug(f"Python Executable: {sys.executable}")
