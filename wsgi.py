@@ -20,7 +20,7 @@ try:
     sys.path.insert(0, site_packages_path)
 
     # Add ai_assistant directory to Python path
-    ai_assistant_dir = '/home/pico/code/AI_career_assistant/ai_assistant'
+    ai_assistant_dir = '/home/pico/code/AI_career_assistant'
     sys.path.insert(0, ai_assistant_dir)
 
     # Add project directory to Python path
