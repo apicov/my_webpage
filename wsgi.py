@@ -19,6 +19,10 @@ try:
     site_packages_path = '/home/pico/miniconda3/envs/lino/lib/python3.10/site-packages'
     sys.path.insert(0, site_packages_path)
 
+    # Add ai_assistant directory to Python path
+    ai_assistant_dir = '/home/pico/code/AI_career_assistant/ai_assistant'
+    sys.path.insert(0, ai_assistant_dir)
+
     # Add project directory to Python path
     project_dir = '/var/www/apicov.xyz'
     sys.path.insert(0, project_dir)
