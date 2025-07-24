@@ -168,9 +168,9 @@ function ChatInterface({ userInfo }) {
                   <div className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-3">
                     <i className="fas fa-robot text-white"></i>
                   </div>
-                  <div>
-                    <h4 className="font-semibold">Professional Assistant</h4>
-                    <p className="text-sm opacity-90">Ask me anything about {userInfo?.name || 'Your Name'}'s background</p>
+                  <div className="text-left">
+                    <h4 className="font-semibold text-left">Professional Assistant</h4>
+                    <p className="text-sm opacity-90 text-left">Ask me anything about {userInfo?.name || 'Your Name'}'s background</p>
                   </div>
                 </div>
                 <div className="flex space-x-2">
