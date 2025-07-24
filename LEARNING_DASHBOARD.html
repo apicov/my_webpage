@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Learning Dashboard - Your Progress Tracker</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        .tutorial-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .tutorial-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .checkpoint-item {
+            transition: background-color 0.2s ease;
+        }
+        .checkpoint-item:hover {
+            background-color: #f3f4f6;
+        }
+        .week-progress {
+            background: linear-gradient(90deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-8">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-4xl font-bold mb-4">🚀 AI Learning Dashboard</h1>
+            <p class="text-xl opacity-90">Track Your Journey to AI Mastery</p>
+            <div class="mt-6">
+                <span class="bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm">
+                    <i class="fas fa-calendar mr-2"></i>
+                    <span id="current-date"></span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <div class="container mx-auto px-4 py-8">
+        <!-- Overall Progress -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Overall Progress</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600" id="total-progress">0%</div>
+                    <div class="text-gray-600">Overall Completion</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600" id="current-week">1</div>
+                    <div class="text-gray-600">Current Week</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-purple-600" id="days-studied">0</div>
+                    <div class="text-gray-600">Days Studied</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-orange-600" id="projects-completed">0</div>
+                    <div class="text-gray-600">Projects Completed</div>
+                </div>
+            </div>
+            <div class="mt-6">
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>Progress</span>
+                    <span id="progress-text">0% Complete</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="week-progress h-3 rounded-full progress-bar" id="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tutorial Progress -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Core Tutorials -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">📚 Core Tutorials</h3>
+                <div class="space-y-4">
+                    <div class="tutorial-card bg-blue-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-semibold text-blue-800">JavaScript & ES6+</h4>
+                            <span class="text-sm text-blue-600" id="js-progress">0%</span>
+                        </div>
+                        <div class="w-full bg-blue-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full progress-bar" id="js-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-blue-700">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            PREREQUISITES_TUTORIAL.md
+                        </div>
+                    </div>
+
+                    <div class="tutorial-card bg-green-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-semibold text-green-800">React Fundamentals</h4>
+                            <span class="text-sm text-green-600" id="react-progress">0%</span>
+                        </div>
+                        <div class="w-full bg-green-200 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full progress-bar" id="react-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-green-700">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            REACT_TUTORIAL.md
+                        </div>
+                    </div>
+
+                    <div class="tutorial-card bg-orange-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-semibold text-orange-800">TinyML & Edge AI</h4>
+                            <span class="text-sm text-orange-600" id="tinyml-progress">0%</span>
+                        </div>
+                        <div class="w-full bg-orange-200 rounded-full h-2">
+                            <div class="bg-orange-600 h-2 rounded-full progress-bar" id="tinyml-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-orange-700">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            TINYML_TUTORIAL.md
+                        </div>
+                    </div>
+
+                    <div class="tutorial-card bg-purple-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-semibold text-purple-800">LLMs & AI Agents</h4>
+                            <span class="text-sm text-purple-600" id="llm-progress">0%</span>
+                        </div>
+                        <div class="w-full bg-purple-200 rounded-full h-2">
+                            <div class="bg-purple-600 h-2 rounded-full progress-bar" id="llm-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-purple-700">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            LLM_FUNDAMENTALS_KERAS3_TUTORIAL.md
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Tutorials -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">🚀 Advanced Tutorials</h3>
+                <div class="space-y-4">
+                    <div class="tutorial-card bg-red-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-semibold text-red-800">Advanced TinyML</h4>
+                            <span class="text-sm text-red-600" id="advanced-tinyml-progress">0%</span>
+                        </div>
+                        <div class="w-full bg-red-200 rounded-full h-2">
+                            <div class="bg-red-600 h-2 rounded-full progress-bar" id="advanced-tinyml-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-red-700">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            TINYML_ADVANCED_TUTORIAL.md
+                        </div>
+                    </div>
+
+                    <div class="tutorial-card bg-indigo-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-semibold text-indigo-800">IoT & Computer Vision</h4>
+                            <span class="text-sm text-indigo-600" id="iot-progress">0%</span>
+                        </div>
+                        <div class="w-full bg-indigo-200 rounded-full h-2">
+                            <div class="bg-indigo-600 h-2 rounded-full progress-bar" id="iot-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-indigo-700">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            IOT_WEBCAM_TUTORIAL.md
+                        </div>
+                    </div>
+
+                    <div class="tutorial-card bg-pink-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-semibold text-pink-800">AI Agents</h4>
+                            <span class="text-sm text-pink-600" id="agents-progress">0%</span>
+                        </div>
+                        <div class="w-full bg-pink-200 rounded-full h-2">
+                            <div class="bg-pink-600 h-2 rounded-full progress-bar" id="agents-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-pink-700">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            LLM_AGENTS_KERAS3_TUTORIAL.md
+                        </div>
+                    </div>
+
+                    <div class="tutorial-card bg-teal-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-semibold text-teal-800">Learning Strategy</h4>
+                            <span class="text-sm text-teal-600" id="strategy-progress">0%</span>
+                        </div>
+                        <div class="w-full bg-teal-200 rounded-full h-2">
+                            <div class="bg-teal-600 h-2 rounded-full progress-bar" id="strategy-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-sm text-teal-700">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            HOW_TO_STUDY_TUTORIALS.md
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Progress -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">📅 Weekly Progress</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600">Week 1-4</div>
+                    <div class="text-sm text-gray-600">Foundation Building</div>
+                    <div class="mt-2">
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">In Progress</span>
+                    </div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600">Week 5-8</div>
+                    <div class="text-sm text-gray-600">Deep Dive</div>
+                    <div class="mt-2">
+                        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Upcoming</span>
+                    </div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600">Week 9-12</div>
+                    <div class="text-sm text-gray-600">Mastery</div>
+                    <div class="mt-2">
+                        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Upcoming</span>
+                    </div>
+                </div>
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                    <div class="text-2xl font-bold text-orange-600">Capstone</div>
+                    <div class="text-sm text-gray-600">Final Project</div>
+                    <div class="mt-2">
+                        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Upcoming</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Tracker -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">📝 Daily Learning Tracker</h3>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-blue-600">JavaScript</div>
+                        <div class="text-sm text-gray-600">30 min</div>
+                        <button class="mt-2 bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600" onclick="markComplete('js')">
+                            <i class="fas fa-check mr-1"></i>Complete
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-green-600">React</div>
+                        <div class="text-sm text-gray-600">30 min</div>
+                        <button class="mt-2 bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600" onclick="markComplete('react')">
+                            <i class="fas fa-check mr-1"></i>Complete
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-orange-600">TinyML</div>
+                        <div class="text-sm text-gray-600">30 min</div>
+                        <button class="mt-2 bg-orange-500 text-white px-3 py-1 rounded text-sm hover:bg-orange-600" onclick="markComplete('tinyml')">
+                            <i class="fas fa-check mr-1"></i>Complete
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-purple-600">LLMs</div>
+                        <div class="text-sm text-gray-600">30 min</div>
+                        <button class="mt-2 bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600" onclick="markComplete('llm')">
+                            <i class="fas fa-check mr-1"></i>Complete
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-teal-600">Review</div>
+                        <div class="text-sm text-gray-600">30 min</div>
+                        <button class="mt-2 bg-teal-500 text-white px-3 py-1 rounded text-sm hover:bg-teal-600" onclick="markComplete('review')">
+                            <i class="fas fa-check mr-1"></i>Complete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">⚡ Quick Actions</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors" onclick="openTutorial('HOW_TO_STUDY_TUTORIALS.md')">
+                    <i class="fas fa-play-circle text-2xl mb-2"></i>
+                    <div class="font-semibold">Start Learning</div>
+                    <div class="text-sm opacity-90">Begin your 12-week journey</div>
+                </button>
+                <button class="bg-gradient-to-r from-green-500 to-blue-600 text-white p-4 rounded-lg hover:from-green-600 hover:to-blue-700 transition-colors" onclick="openTutorial('PREREQUISITES_TUTORIAL.md')">
+                    <i class="fas fa-code text-2xl mb-2"></i>
+                    <div class="font-semibold">JavaScript Basics</div>
+                    <div class="text-sm opacity-90">Modern JS & ES6+</div>
+                </button>
+                <button class="bg-gradient-to-r from-orange-500 to-red-600 text-white p-4 rounded-lg hover:from-orange-600 hover:to-red-700 transition-colors" onclick="openTutorial('TINYML_TUTORIAL.md')">
+                    <i class="fas fa-microchip text-2xl mb-2"></i>
+                    <div class="font-semibold">Edge AI</div>
+                    <div class="text-sm opacity-90">TinyML & ESP32</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="gradient-bg text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-lg mb-4">🚀 Your AI Learning Journey Starts Now!</p>
+            <p class="opacity-90">Track your progress, stay motivated, and become an AI master!</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current date
+            const today = new Date();
+            document.getElementById('current-date').textContent = today.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+
+            // Load progress from localStorage
+            loadProgress();
+        });
+
+        // Progress tracking
+        let progress = {
+            js: 0,
+            react: 0,
+            tinyml: 0,
+            llm: 0,
+            advanced_tinyml: 0,
+            iot: 0,
+            agents: 0,
+            strategy: 0,
+            days_studied: 0,
+            projects_completed: 0
+        };
+
+        function loadProgress() {
+            const saved = localStorage.getItem('ai-learning-progress');
+            if (saved) {
+                progress = JSON.parse(saved);
+            }
+            updateDashboard();
+        }
+
+        function saveProgress() {
+            localStorage.setItem('ai-learning-progress', JSON.stringify(progress));
+        }
+
+        function markComplete(topic) {
+            progress[topic] += 10;
+            if (progress[topic] > 100) progress[topic] = 100;
+            
+            // Mark day as studied
+            const today = new Date().toDateString();
+            const studiedDays = JSON.parse(localStorage.getItem('studied-days') || '[]');
+            if (!studiedDays.includes(today)) {
+                studiedDays.push(today);
+                localStorage.setItem('studied-days', JSON.stringify(studiedDays));
+                progress.days_studied = studiedDays.length;
+            }
+            
+            saveProgress();
+            updateDashboard();
+            
+            // Show success message
+            showNotification(`${topic.toUpperCase()} progress updated!`);
+        }
+
+        function updateDashboard() {
+            // Update individual progress bars
+            document.getElementById('js-progress').textContent = `${progress.js}%`;
+            document.getElementById('js-bar').style.width = `${progress.js}%`;
+            
+            document.getElementById('react-progress').textContent = `${progress.react}%`;
+            document.getElementById('react-bar').style.width = `${progress.react}%`;
+            
+            document.getElementById('tinyml-progress').textContent = `${progress.tinyml}%`;
+            document.getElementById('tinyml-bar').style.width = `${progress.tinyml}%`;
+            
+            document.getElementById('llm-progress').textContent = `${progress.llm}%`;
+            document.getElementById('llm-bar').style.width = `${progress.llm}%`;
+            
+            document.getElementById('advanced-tinyml-progress').textContent = `${progress.advanced_tinyml}%`;
+            document.getElementById('advanced-tinyml-bar').style.width = `${progress.advanced_tinyml}%`;
+            
+            document.getElementById('iot-progress').textContent = `${progress.iot}%`;
+            document.getElementById('iot-bar').style.width = `${progress.iot}%`;
+            
+            document.getElementById('agents-progress').textContent = `${progress.agents}%`;
+            document.getElementById('agents-bar').style.width = `${progress.agents}%`;
+            
+            document.getElementById('strategy-progress').textContent = `${progress.strategy}%`;
+            document.getElementById('strategy-bar').style.width = `${progress.strategy}%`;
+
+            // Calculate overall progress
+            const total = (progress.js + progress.react + progress.tinyml + progress.llm + 
+                          progress.advanced_tinyml + progress.iot + progress.agents + progress.strategy) / 8;
+            
+            document.getElementById('total-progress').textContent = `${Math.round(total)}%`;
+            document.getElementById('progress-text').textContent = `${Math.round(total)}% Complete`;
+            document.getElementById('progress-bar').style.width = `${total}%`;
+            
+            // Update other stats
+            document.getElementById('days-studied').textContent = progress.days_studied;
+            document.getElementById('projects-completed').textContent = progress.projects_completed;
+            
+            // Calculate current week (based on days studied)
+            const currentWeek = Math.min(12, Math.ceil(progress.days_studied / 7));
+            document.getElementById('current-week').textContent = currentWeek;
+        }
+
+        function showNotification(message) {
+            // Create notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function openTutorial(filename) {
+            // In a real implementation, this would open the tutorial file
+            showNotification(`Opening ${filename}...`);
+        }
+    </script>
+</body>
+</html> 
