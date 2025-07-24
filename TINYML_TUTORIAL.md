@@ -606,7 +606,17 @@ void wifi_init_sta() {
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     wifi_config_t wifi_config = {
-        .sta = {l
+        .sta = {
+            .ssid = "YOUR_WIFI_SSID",
+            .password = "YOUR_WIFI_PASSWORD",
+        },
+    };
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    ESP_LOGI(TAG, "wifi_init_sta finished.");
+}
 ```
 
 ### Real-time Inference
