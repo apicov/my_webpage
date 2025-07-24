@@ -10,7 +10,7 @@ function ChatInterface({ userInfo }) {
   const chatMessagesRef = useRef(null);
   const isProcessingRef = useRef(false);
 
-  const initialMessage = `Hi! I'm ${userInfo?.name || 'Your Name'}'s AI assistant. I'm here to provide information about their professional background, skills, and experience. I can help you learn more about their career, projects, and achievements. What would you like to know?`;
+  const initialMessage = `Hi! I'm ${userInfo?.name || 'Your Name'}'s AI assistant. I'm here to provide information about his professional background, skills, and experience. I can help you learn more about their career, projects, and achievements. What would you like to know?`;
 
   useEffect(() => {
     // Add initial message
