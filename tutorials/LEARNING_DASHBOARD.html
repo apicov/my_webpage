@@ -46,8 +46,57 @@
         </div>
     </header>
 
+    <!-- Tutorial Navigation -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-8">
+        <div class="container mx-auto px-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-blue-800">Quick Tutorial Access</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p class="mb-2">Click tutorial names below or use these direct links:</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <a href="HOW_TO_STUDY_TUTORIALS.md" class="bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded text-blue-800 text-xs transition-colors">📚 Study Guide</a>
+                            <a href="REACT_TUTORIAL.md" class="bg-green-100 hover:bg-green-200 px-3 py-1 rounded text-green-800 text-xs transition-colors">⚛️ React</a>
+                            <a href="LLM_FUNDAMENTALS_KERAS3_TUTORIAL.md" class="bg-purple-100 hover:bg-purple-200 px-3 py-1 rounded text-purple-800 text-xs transition-colors">🤖 LLMs</a>
+                            <a href="TINYML_TUTORIAL.md" class="bg-orange-100 hover:bg-orange-200 px-3 py-1 rounded text-orange-800 text-xs transition-colors">📟 TinyML</a>
+                        </div>
+                        <p class="mt-2 text-xs">💡 <strong>Tip:</strong> Right-click links and select "Open in new tab" for best experience</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Dashboard -->
     <div class="container mx-auto px-4 py-8">
+        <!-- Getting Started Instructions -->
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8 border border-blue-200">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">🚀 Getting Started</h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">📖 How to Access Tutorials:</h3>
+                    <ol class="list-decimal list-inside text-sm text-gray-600 space-y-1">
+                        <li>Click tutorial links above or below</li>
+                        <li>Use VS Code: <code class="bg-gray-200 px-1 rounded text-xs">code .</code> in your project directory</li>
+                        <li>File manager: Navigate to <code class="bg-gray-200 px-1 rounded text-xs">tutorials/</code> folder</li>
+                        <li>If links don't work, manually open the <code class="bg-gray-200 px-1 rounded text-xs">.md</code> files</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">🎯 Recommended Start:</h3>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• 1. <a href="HOW_TO_STUDY_TUTORIALS.md" class="text-blue-600 hover:underline font-medium">Study Strategy</a> (Learning method)</li>
+                        <li>• 2. <a href="README.md" class="text-blue-600 hover:underline font-medium">Tutorial Index</a> (Navigation guide)</li>
+                        <li>• 3. <a href="REACT_TUTORIAL.md" class="text-blue-600 hover:underline font-medium">React Tutorial</a> (Understand your code)</li>
+                        <li>• 4. Track progress here as you learn!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- Overall Progress -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Overall Progress</h2>
@@ -436,9 +485,63 @@
         }
 
         function openTutorial(filename) {
-            // In a real implementation, this would open the tutorial file
-            showNotification(`Opening ${filename}...`);
+            // Open tutorial file in new tab/window
+            try {
+                // Try to open the file (works in most browsers)
+                window.open(filename, '_blank');
+            } catch (error) {
+                // Fallback: show instructions on how to open the file
+                showNotification(`📖 Please open ${filename} in your text editor or browser`);
+                console.log(`Open this file: ${filename}`);
+            }
         }
     </script>
+
+    <!-- Footer with Tutorial Access -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-semibold mb-4">📚 Access All Tutorials</h3>
+                <p class="text-gray-400 mb-4">Multiple ways to open your learning materials:</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Method 1: Direct File Links -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h4 class="font-semibold mb-3 text-blue-300">🔗 Direct Links</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="README.md" class="hover:text-blue-300 transition-colors">📖 Tutorial Index</a></li>
+                        <li><a href="HOW_TO_STUDY_TUTORIALS.md" class="hover:text-blue-300 transition-colors">🧠 Study Strategy</a></li>
+                        <li><a href="PROJECT_ROADMAP.md" class="hover:text-blue-300 transition-colors">🗓️ Project Roadmap</a></li>
+                        <li><a href="REACT_TUTORIAL.md" class="hover:text-blue-300 transition-colors">⚛️ React Tutorial</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Method 2: File Manager -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h4 class="font-semibold mb-3 text-green-300">📁 File Manager</h4>
+                    <div class="text-sm text-gray-300">
+                        <p class="mb-2">Navigate to your project folder:</p>
+                        <code class="bg-gray-800 px-2 py-1 rounded text-xs block mb-2">my_webpage/tutorials/</code>
+                        <p>Double-click any <code>.md</code> file to open</p>
+                    </div>
+                </div>
+                
+                <!-- Method 3: VS Code -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h4 class="font-semibold mb-3 text-purple-300">💻 VS Code</h4>
+                    <div class="text-sm text-gray-300">
+                        <p class="mb-2">Open project in VS Code:</p>
+                        <code class="bg-gray-800 px-2 py-1 rounded text-xs block mb-2">code my_webpage</code>
+                        <p>Navigate to <code>tutorials/</code> folder</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-8 pt-6 border-t border-gray-600">
+                <p class="text-gray-400 text-sm">🚀 Your AI Learning Journey Starts Here!</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html> 

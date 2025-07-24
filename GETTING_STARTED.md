@@ -41,6 +41,7 @@ cd frontend && npm start
 open tutorials/LEARNING_DASHBOARD.html
 # or double-click the file in your file manager
 ```
+**Note:** The dashboard now has multiple ways to access tutorials! If clicking doesn't work, use VS Code or your file manager.
 
 ### **3. Start with Learning Strategy**
 ```bash

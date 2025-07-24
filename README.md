@@ -82,7 +82,7 @@ cd frontend && npm start         # React frontend
 ```
 
 ### **2. Begin Learning Journey**
-1. Open `tutorials/LEARNING_DASHBOARD.html` to track progress
+1. Open `tutorials/LEARNING_DASHBOARD.html` to track progress (or run `./open_dashboard.sh`)
 2. Start with `tutorials/HOW_TO_STUDY_TUTORIALS.md` for optimal strategy
 3. Follow `tutorials/REACT_TUTORIAL.md` to understand YOUR code
 4. Enhance YOUR platform progressively each week
