@@ -21,7 +21,17 @@ code {
 
 /* Chat container styles */
 .chat-container {
-  height: 500px;
+  height: 60vh; /* Use viewport height instead of fixed pixels */
+  min-height: 300px; /* Minimum height for small screens */
+  max-height: 600px; /* Maximum height for large screens */
+}
+
+/* Mobile-specific chat container */
+@media (max-width: 768px) {
+  .chat-container {
+    height: 50vh; /* Smaller on mobile */
+    min-height: 250px;
+  }
 }
 
 /* Typing indicator styles */
@@ -74,6 +84,44 @@ code {
   scroll-behavior: smooth;
 }
 
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  button, input, select, textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Better spacing for mobile */
+  .p-4 {
+    padding: 1rem;
+  }
+  
+  .p-6 {
+    padding: 1.5rem;
+  }
+  
+  /* Improve message bubbles on mobile */
+  .max-w-md {
+    max-width: 85%;
+  }
+  
+  /* Better button spacing */
+  .space-x-3 > * + * {
+    margin-left: 0.75rem;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+body {
+  overflow-x: hidden;
+}
+
+/* Better focus states for accessibility */
+button:focus, input:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
 /* Media content styles */
 .media-content {
   max-width: 100%;
@@ -87,6 +135,18 @@ code {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   cursor: pointer;
   transition: transform 0.2s ease;
+}
+
+/* Mobile media adjustments */
+@media (max-width: 768px) {
+  .media-image {
+    max-width: 100%;
+    max-height: 150px;
+  }
+  
+  .media-video {
+    max-width: 100%;
+  }
 }
 
 .media-image:hover {

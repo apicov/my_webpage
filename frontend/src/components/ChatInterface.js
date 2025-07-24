@@ -250,13 +250,14 @@ function ChatInterface({ userInfo }) {
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask about skills, experience, projects..." 
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="flex-1 p-3 md:p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
                   disabled={isTyping}
+                  style={{ minHeight: '44px' }}
                 />
                 <button 
                   onClick={sendMessage}
                   disabled={isTyping || !inputMessage.trim()}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 md:px-6 md:py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px]"
                 >
                   <i className="fas fa-paper-plane"></i>
                 </button>

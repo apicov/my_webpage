@@ -29,13 +29,13 @@ function HeroSection({ userInfo }) {
             </p>
             <div className="flex flex-wrap gap-3 mt-2">
               <a href="/static/cv.pdf" download style={{ display: 'inline-block' }}>
-                <button className="bg-white text-purple-600 px-5 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-sm lg:text-base flex items-center">
+                <button className="bg-white text-purple-600 px-4 py-3 md:px-5 md:py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-sm lg:text-base flex items-center min-h-[44px]">
                   <i className="fas fa-download mr-2"></i>Download CV
                 </button>
               </a>
               <button 
                 onClick={scrollToChat}
-                className="border-2 border-white text-white px-5 py-2 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-colors text-sm lg:text-base"
+                className="border-2 border-white text-white px-4 py-3 md:px-5 md:py-2 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-colors text-sm lg:text-base min-h-[44px]"
               >
                 <i className="fas fa-comments mr-2"></i>Ask My AI Assistant
               </button>
@@ -44,7 +44,7 @@ function HeroSection({ userInfo }) {
           
           {/* Profile Picture */}
           <div className="w-full lg:w-1/3 flex justify-center items-center mt-6 lg:mt-0">
-            <div className="w-40 h-40 lg:w-56 lg:h-56 rounded-full overflow-hidden border-4 border-white shadow-2xl flex-shrink-0">
+            <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-56 lg:h-56 rounded-full overflow-hidden border-4 border-white shadow-2xl flex-shrink-0">
               <img 
                 src="/static/myphoto.jpg" 
                 alt={userInfo?.name || 'Profile'} 
