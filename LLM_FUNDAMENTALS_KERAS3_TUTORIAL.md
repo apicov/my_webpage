@@ -4,6 +4,52 @@
 
 Large Language Models (LLMs) have revolutionized AI by demonstrating remarkable capabilities in understanding and generating human language. This tutorial covers everything from basic concepts to advanced implementations using Keras 3.0's multi-backend capabilities.
 
+### What are Large Language Models?
+
+**Large Language Models (LLMs)** are artificial intelligence systems trained on vast amounts of text data to understand and generate human language. Think of them as incredibly sophisticated autocomplete systems that can:
+
+1. **Read and Understand**: Process text to understand context, meaning, and relationships between words
+2. **Learn Patterns**: Identify patterns in language, grammar, knowledge, and reasoning
+3. **Generate Responses**: Create coherent, contextually appropriate text that sounds human-like
+
+### How Do LLMs Work?
+
+At their core, LLMs work through these key steps:
+
+1. **Tokenization**: Converting words and phrases into numbers (tokens) that computers can process
+2. **Embedding**: Converting tokens into high-dimensional vectors that capture meaning
+3. **Processing**: Using neural networks (specifically Transformers) to understand relationships
+4. **Generation**: Producing new tokens based on learned patterns and context
+
+### The Transformer Revolution
+
+The **Transformer architecture** (introduced in 2017) revolutionized LLMs by introducing:
+- **Self-Attention**: The ability to "pay attention" to different parts of input text
+- **Parallel Processing**: Processing entire sequences at once (unlike RNNs)
+- **Scalability**: Ability to handle much larger models and datasets
+
+### Why Keras 3.0 for LLMs?
+
+Keras 3.0 brings several advantages for LLM development:
+
+1. **Multi-backend Support**: Choose the best backend for your needs:
+   - **TensorFlow**: Most mature, great for production
+   - **PyTorch**: Popular in research, dynamic computation
+   - **JAX**: Fastest for training, functional programming style
+
+2. **Unified API**: Write code once, run on any backend
+3. **Better Performance**: Optimized for modern hardware (GPUs, TPUs)
+4. **Easier Deployment**: Simplified model serving and production deployment
+5. **Integration**: Works seamlessly with your existing TinyML and IoT projects
+
+### Prerequisites
+
+Before starting this tutorial, you should be familiar with:
+- Basic Python programming
+- Fundamental machine learning concepts
+- Basic understanding of neural networks
+- Your existing Flask and React setup (from previous tutorials)
+
 **What you'll learn:**
 - LLM architecture and training principles with Keras 3.0
 - Transformer models and attention mechanisms
@@ -19,6 +65,33 @@ Large Language Models (LLMs) have revolutionized AI by demonstrating remarkable 
 
 The Transformer architecture, introduced in "Attention Is All You Need" (2017), is the foundation of modern LLMs. Let's implement it using Keras 3.0.
 
+#### What is the Transformer Architecture?
+
+The **Transformer** is a neural network architecture that revolutionized natural language processing. Unlike previous models (RNNs, LSTMs) that process text sequentially, Transformers can:
+
+1. **Process entire sequences at once** (parallel processing)
+2. **Capture long-range dependencies** through attention mechanisms
+3. **Scale to much larger models** and datasets
+4. **Handle variable-length inputs** efficiently
+
+#### Key Components of Transformers:
+
+1. **Multi-Head Attention**: The core mechanism that allows the model to focus on different parts of the input
+2. **Positional Encoding**: Adds information about word positions (since Transformers don't process sequentially)
+3. **Feed-Forward Networks**: Simple neural networks that process each position independently
+4. **Layer Normalization**: Stabilizes training by normalizing activations
+5. **Residual Connections**: Help with gradient flow during training
+
+#### Understanding Attention Mechanisms:
+
+**Attention** is like having a spotlight that can focus on different parts of a sentence. For example, when processing "The cat sat on the mat", the model might pay more attention to "cat" when trying to understand what "sat" refers to.
+
+The attention mechanism works by:
+1. **Query (Q)**: What we're looking for
+2. **Key (K)**: What each word offers
+3. **Value (V)**: The actual content of each word
+4. **Attention Score**: How much to focus on each word
+
 ```python
 import keras
 from keras import layers
@@ -26,98 +99,374 @@ import math
 import numpy as np
 
 class MultiHeadAttention(layers.Layer):
+    """
+    Multi-Head Attention Layer - The core mechanism of Transformers
+    
+    This layer implements the attention mechanism that allows the model to focus on
+    different parts of the input sequence. Think of it as having multiple "spotlights"
+    that can each focus on different aspects of the text.
+    
+    Parameters:
+    - d_model: The dimension of the model (e.g., 512, 768, 1024)
+    - num_heads: Number of attention heads (e.g., 8, 12, 16)
+    """
     def __init__(self, d_model, num_heads, **kwargs):
         super().__init__(**kwargs)
         self.num_heads = num_heads
         self.d_model = d_model
-        assert d_model % num_heads == 0
         
+        # Ensure d_model is divisible by num_heads for clean splitting
+        assert d_model % num_heads == 0, f"d_model ({d_model}) must be divisible by num_heads ({num_heads})"
+        
+        # Dimension of each attention head
         self.d_k = d_model // num_heads
-        self.w_q = layers.Dense(d_model)
-        self.w_k = layers.Dense(d_model)
-        self.w_v = layers.Dense(d_model)
-        self.w_o = layers.Dense(d_model)
+        
+        # Linear transformation layers for Query, Key, Value, and Output
+        # These convert the input into the Q, K, V representations
+        self.w_q = layers.Dense(d_model)  # Query transformation
+        self.w_k = layers.Dense(d_model)  # Key transformation  
+        self.w_v = layers.Dense(d_model)  # Value transformation
+        self.w_o = layers.Dense(d_model)  # Output transformation
         
     def scaled_dot_product_attention(self, Q, K, V, mask=None):
-        # Calculate attention scores
+        """
+        Scaled Dot-Product Attention - The heart of the attention mechanism
+        
+        This function computes how much attention to pay to each part of the input.
+        It's like having a spotlight that can focus on different words in a sentence.
+        
+        Parameters:
+        - Q: Query matrix - what we're looking for
+        - K: Key matrix - what each word offers
+        - V: Value matrix - the actual content of each word
+        - mask: Optional mask to hide certain positions (e.g., future tokens in decoder)
+        
+        Returns:
+        - output: The weighted combination of values
+        - attention_weights: How much attention was paid to each position
+        """
+        # Step 1: Calculate attention scores using dot product
+        # This measures how much each query should pay attention to each key
+        # We transpose K to align dimensions for matrix multiplication
         scores = keras.ops.matmul(Q, keras.ops.transpose(K, axes=[0, 1, 3, 2])) / math.sqrt(self.d_k)
         
+        # Step 2: Apply masking if provided (used in decoder to prevent looking at future tokens)
         if mask is not None:
+            # Set masked positions to very negative values so they get ~0 attention after softmax
             scores = keras.ops.where(mask == 0, -1e9, scores)
         
-        # Apply softmax
+        # Step 3: Apply softmax to convert scores to probabilities (attention weights)
+        # This ensures all attention weights sum to 1
         attention_weights = keras.ops.softmax(scores, axis=-1)
         
-        # Apply attention to values
+        # Step 4: Apply attention weights to values to get the final output
+        # This is like taking a weighted average of the values
         output = keras.ops.matmul(attention_weights, V)
         return output, attention_weights
     
     def call(self, query, key, value, mask=None, training=None):
+        """
+        Forward pass of the Multi-Head Attention layer
+        
+        This is the main function that gets called during model inference and training.
+        It orchestrates the entire attention mechanism.
+        
+        Parameters:
+        - query: Input sequence (what we're looking for)
+        - key: Keys for attention (what each position offers)
+        - value: Values to attend to (actual content)
+        - mask: Optional mask to hide certain positions
+        - training: Whether we're in training mode
+        
+        Returns:
+        - output: The attended output sequence
+        """
+        # Get batch size for reshaping operations
         batch_size = keras.ops.shape(query)[0]
         
-        # Linear transformations
-        Q = keras.ops.reshape(self.w_q(query), [batch_size, -1, self.num_heads, self.d_k])
-        Q = keras.ops.transpose(Q, axes=[0, 2, 1, 3])
+        # Step 1: Linear transformations to create Q, K, V
+        # Each input is transformed into Query, Key, and Value representations
+        # These transformations allow the model to learn different aspects of the input
         
-        K = keras.ops.reshape(self.w_k(key), [batch_size, -1, self.num_heads, self.d_k])
-        K = keras.ops.transpose(K, axes=[0, 2, 1, 3])
+        # Transform query into Query matrix
+        Q = self.w_q(query)  # [batch_size, seq_len, d_model]
+        Q = keras.ops.reshape(Q, [batch_size, -1, self.num_heads, self.d_k])  # Split into heads
+        Q = keras.ops.transpose(Q, axes=[0, 2, 1, 3])  # [batch_size, num_heads, seq_len, d_k]
         
-        V = keras.ops.reshape(self.w_v(value), [batch_size, -1, self.num_heads, self.d_k])
-        V = keras.ops.transpose(V, axes=[0, 2, 1, 3])
+        # Transform key into Key matrix
+        K = self.w_k(key)  # [batch_size, seq_len, d_model]
+        K = keras.ops.reshape(K, [batch_size, -1, self.num_heads, self.d_k])  # Split into heads
+        K = keras.ops.transpose(K, axes=[0, 2, 1, 3])  # [batch_size, num_heads, seq_len, d_k]
         
-        # Apply attention
+        # Transform value into Value matrix
+        V = self.w_v(value)  # [batch_size, seq_len, d_model]
+        V = keras.ops.reshape(V, [batch_size, -1, self.num_heads, self.d_k])  # Split into heads
+        V = keras.ops.transpose(V, axes=[0, 2, 1, 3])  # [batch_size, num_heads, seq_len, d_k]
+        
+        # Step 2: Apply scaled dot-product attention
+        # This computes how much attention each position should pay to every other position
         attention_output, attention_weights = self.scaled_dot_product_attention(Q, K, V, mask)
         
-        # Concatenate heads
+        # Step 3: Concatenate attention heads
+        # We have multiple attention heads, each focusing on different aspects
+        # Now we combine their outputs back into a single representation
+        
+        # Transpose back to [batch_size, seq_len, num_heads, d_k]
         attention_output = keras.ops.transpose(attention_output, axes=[0, 2, 1, 3])
+        # Reshape to [batch_size, seq_len, d_model] (concatenate all heads)
         attention_output = keras.ops.reshape(attention_output, [batch_size, -1, self.d_model])
         
-        # Final linear layer
+        # Step 4: Final linear transformation
+        # This projects the concatenated attention output back to the desired dimension
         output = self.w_o(attention_output)
         return output
 
 class TransformerBlock(layers.Layer):
+    """
+    Transformer Block - A complete Transformer layer
+    
+    This is a single layer of the Transformer architecture. Each block contains:
+    1. Multi-Head Self-Attention
+    2. Add & Norm (residual connection + layer normalization)
+    3. Feed-Forward Network
+    4. Add & Norm (residual connection + layer normalization)
+    
+    Parameters:
+    - d_model: Dimension of the model (e.g., 512, 768, 1024)
+    - num_heads: Number of attention heads
+    - d_ff: Dimension of the feed-forward network (usually 4x d_model)
+    - dropout: Dropout rate for regularization
+    """
     def __init__(self, d_model, num_heads, d_ff, dropout=0.1, **kwargs):
         super().__init__(**kwargs)
+        
+        # Multi-Head Self-Attention layer
+        # This allows the model to focus on different parts of the input sequence
         self.attention = MultiHeadAttention(d_model, num_heads)
-        self.norm1 = layers.LayerNormalization()
-        self.norm2 = layers.LayerNormalization()
+        
+        # Layer Normalization layers
+        # These stabilize training by normalizing activations
+        self.norm1 = layers.LayerNormalization()  # After attention
+        self.norm2 = layers.LayerNormalization()  # After feed-forward
+        
+        # Feed-Forward Network
+        # This is a simple 2-layer neural network that processes each position independently
+        # It typically expands the dimension (d_model -> d_ff) then contracts it back (d_ff -> d_model)
         self.feed_forward = keras.Sequential([
-            layers.Dense(d_ff, activation='relu'),
-            layers.Dropout(dropout),
-            layers.Dense(d_model)
+            layers.Dense(d_ff, activation='relu'),  # Expand dimension
+            layers.Dropout(dropout),                # Regularization
+            layers.Dense(d_model)                   # Contract back to original dimension
         ])
+        
+        # Dropout for regularization
         self.dropout = layers.Dropout(dropout)
         
     def call(self, x, mask=None, training=None):
-        # Self-attention
+        """
+        Forward pass of the Transformer Block
+        
+        This implements the complete Transformer block with residual connections
+        and layer normalization. The flow is:
+        1. Self-Attention → Add & Norm
+        2. Feed-Forward → Add & Norm
+        
+        Parameters:
+        - x: Input sequence [batch_size, seq_len, d_model]
+        - mask: Optional attention mask
+        - training: Whether in training mode
+        
+        Returns:
+        - x: Transformed sequence [batch_size, seq_len, d_model]
+        """
+        # Step 1: Multi-Head Self-Attention
+        # The attention mechanism allows each position to attend to all positions
+        # We use the same input for query, key, and value (self-attention)
         attn_output = self.attention(x, x, x, mask, training)
+        
+        # Step 2: Add & Norm (Residual Connection + Layer Normalization)
+        # Residual connection: x + dropout(attention_output)
+        # This helps with gradient flow during training
+        # Layer normalization stabilizes the activations
         x = self.norm1(x + self.dropout(attn_output, training=training))
         
-        # Feed-forward
+        # Step 3: Feed-Forward Network
+        # This processes each position independently
+        # It's like having a small neural network at each position
         ff_output = self.feed_forward(x, training=training)
+        
+        # Step 4: Add & Norm (Residual Connection + Layer Normalization)
+        # Another residual connection and normalization
         x = self.norm2(x + self.dropout(ff_output, training=training))
         
         return x
 
+### 🔍 **Understanding What We Just Built**
+
+Now that we've implemented the core Transformer components, let's understand what each part does and why it's important:
+
+#### **1. Multi-Head Attention Explained**
+
+Think of **Multi-Head Attention** as having multiple "spotlights" that can each focus on different aspects of a sentence:
+
+**Example**: For the sentence "The cat sat on the mat because it was comfortable"
+
+- **Head 1** might focus on **subject-verb relationships** (cat → sat)
+- **Head 2** might focus on **spatial relationships** (on → mat)  
+- **Head 3** might focus on **causal relationships** (because → comfortable)
+- **Head 4** might focus on **pronoun references** (it → mat)
+
+**Why Multiple Heads?**
+- Each head can specialize in different types of relationships
+- More heads = more capacity to understand complex patterns
+- Parallel processing makes it computationally efficient
+
+#### **2. The Attention Mechanism Step-by-Step**
+
+Let's trace through what happens when processing "The cat sat":
+
+1. **Input**: "The cat sat" → [token1, token2, token3]
+
+2. **Linear Transformations**:
+   - Query: "What am I looking for?"
+   - Key: "What does each word offer?"
+   - Value: "What's the actual content?"
+
+3. **Attention Scores**: 
+   - How much should "sat" pay attention to "The"? (probably low)
+   - How much should "sat" pay attention to "cat"? (probably high)
+   - How much should "sat" pay attention to "sat"? (medium)
+
+4. **Softmax**: Convert scores to probabilities (sum to 1)
+
+5. **Weighted Sum**: Combine values based on attention weights
+
+#### **3. Transformer Block Architecture**
+
+Each Transformer block follows this pattern:
+
+```
+Input → Self-Attention → Add & Norm → Feed-Forward → Add & Norm → Output
+```
+
+**Why This Pattern?**
+- **Self-Attention**: Captures relationships between all positions
+- **Add & Norm**: Residual connections help gradients flow, normalization stabilizes training
+- **Feed-Forward**: Processes each position independently, adds non-linearity
+- **Multiple Blocks**: Each block refines the understanding further
+
+#### **4. Key Innovations of Transformers**
+
+**Before Transformers (RNNs/LSTMs)**:
+- Process text sequentially (word by word)
+- Struggle with long-range dependencies
+- Hard to parallelize
+
+**With Transformers**:
+- Process entire sequence at once
+- Can capture relationships between any two positions
+- Highly parallelizable
+- Scale to much larger models
+
+#### **5. Why This Matters for LLMs**
+
+Modern LLMs like GPT, BERT, and T5 are built on this architecture:
+
+- **GPT**: Uses decoder-only Transformers (generates text)
+- **BERT**: Uses encoder-only Transformers (understands text)
+- **T5**: Uses encoder-decoder Transformers (translates/transforms text)
+
+The attention mechanism allows these models to:
+- Understand context across long documents
+- Generate coherent, contextually appropriate text
+- Learn complex language patterns
+- Handle multiple languages and tasks
+
 class SimpleTransformer(keras.Model):
+    """
+    Simple Transformer Model - A complete Transformer implementation
+    
+    This is a simplified version of a Transformer model that can be used for
+    language modeling tasks. It includes all the essential components:
+    
+    1. Token Embeddings: Convert tokens to vectors
+    2. Positional Encoding: Add position information
+    3. Multiple Transformer Blocks: Process the sequence
+    4. Output Layer: Generate predictions
+    
+    Parameters:
+    - vocab_size: Size of the vocabulary (number of unique tokens)
+    - d_model: Dimension of the model (embedding dimension)
+    - num_heads: Number of attention heads
+    - num_layers: Number of Transformer blocks
+    - d_ff: Dimension of feed-forward networks
+    - max_seq_len: Maximum sequence length
+    - dropout: Dropout rate for regularization
+    """
     def __init__(self, vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_len, dropout=0.1):
         super().__init__()
+        
+        # Token Embedding Layer
+        # Converts token IDs (integers) to dense vectors
+        # This is where the model learns word representations
         self.embedding = layers.Embedding(vocab_size, d_model)
+        
+        # Positional Encoding
+        # Since Transformers process all positions at once, they need explicit
+        # information about token positions in the sequence
         self.pos_encoding = self.create_positional_encoding(max_seq_len, d_model)
+        
+        # Stack of Transformer Blocks
+        # Each block refines the understanding of the sequence
+        # More layers = more capacity to learn complex patterns
         self.transformer_blocks = [TransformerBlock(d_model, num_heads, d_ff, dropout) 
                                   for _ in range(num_layers)]
+        
+        # Dropout for regularization
         self.dropout = layers.Dropout(dropout)
+        
+        # Final Output Layer
+        # Projects the final representations back to vocabulary size
+        # This allows the model to predict the next token
         self.final_layer = layers.Dense(vocab_size)
         
     def create_positional_encoding(self, max_seq_len, d_model):
-        pe = keras.ops.zeros([max_seq_len, d_model])
-        position = keras.ops.arange(0, max_seq_len, dtype='float32')
-        position = keras.ops.expand_dims(position, axis=1)
+        """
+        Create Positional Encoding for Transformer
         
+        Since Transformers process all positions simultaneously, they need explicit
+        information about token positions. This function creates sinusoidal positional
+        encodings that the model can learn to use.
+        
+        The encoding uses sine and cosine functions of different frequencies:
+        - Even dimensions: sin(pos / 10000^(2i/d_model))
+        - Odd dimensions: cos(pos / 10000^(2i/d_model))
+        
+        This allows the model to:
+        1. Learn relative positions (position 5 is close to position 6)
+        2. Generalize to sequences longer than those seen during training
+        3. Maintain the same encoding regardless of sequence length
+        
+        Parameters:
+        - max_seq_len: Maximum sequence length to support
+        - d_model: Dimension of the model (must match embedding dimension)
+        
+        Returns:
+        - pe: Positional encoding tensor [1, max_seq_len, d_model]
+        """
+        # Initialize positional encoding matrix
+        pe = keras.ops.zeros([max_seq_len, d_model])
+        
+        # Create position indices [0, 1, 2, ..., max_seq_len-1]
+        position = keras.ops.arange(0, max_seq_len, dtype='float32')
+        position = keras.ops.expand_dims(position, axis=1)  # [max_seq_len, 1]
+        
+        # Calculate division terms for different frequencies
+        # This creates different frequencies for different dimensions
         div_term = keras.ops.exp(keras.ops.arange(0, d_model, 2, dtype='float32') * 
                                 -(math.log(10000.0) / d_model))
         
+        # Apply sine function to even dimensions
+        # This creates a unique pattern for each position
         pe = keras.ops.tensor_scatter_nd_update(
             pe,
             keras.ops.stack([keras.ops.arange(0, max_seq_len), 
@@ -125,6 +474,8 @@ class SimpleTransformer(keras.Model):
             keras.ops.sin(position * div_term)
         )
         
+        # Apply cosine function to odd dimensions
+        # This creates a complementary pattern
         pe = keras.ops.tensor_scatter_nd_update(
             pe,
             keras.ops.stack([keras.ops.arange(0, max_seq_len), 
@@ -132,18 +483,62 @@ class SimpleTransformer(keras.Model):
             keras.ops.cos(position * div_term)
         )
         
-        return keras.ops.expand_dims(pe, axis=0)
+        # Add batch dimension for broadcasting
+        return keras.ops.expand_dims(pe, axis=0)  # [1, max_seq_len, d_model]
     
     def call(self, x, mask=None, training=None):
+        """
+        Forward pass of the Transformer model
+        
+        This is the main function that processes input sequences through the entire
+        Transformer architecture. The flow is:
+        
+        1. Token Embedding: Convert token IDs to vectors
+        2. Scale Embeddings: Multiply by sqrt(d_model) for stability
+        3. Add Positional Encoding: Add position information
+        4. Apply Dropout: Regularization during training
+        5. Process through Transformer Blocks: Multiple layers of attention
+        6. Final Output: Project to vocabulary size for predictions
+        
+        Parameters:
+        - x: Input token IDs [batch_size, seq_len]
+        - mask: Optional attention mask
+        - training: Whether in training mode
+        
+        Returns:
+        - output: Logits for next token prediction [batch_size, seq_len, vocab_size]
+        """
+        # Get sequence length for positional encoding
         seq_len = keras.ops.shape(x)[1]
-        x = self.embedding(x) * math.sqrt(self.embedding.embedding_dim)
-        x = x + self.pos_encoding[:, :seq_len]
+        
+        # Step 1: Token Embedding
+        # Convert token IDs (integers) to dense vectors
+        x = self.embedding(x)  # [batch_size, seq_len, d_model]
+        
+        # Step 2: Scale Embeddings
+        # Multiply by sqrt(d_model) to prevent embeddings from being too large
+        # This helps with training stability
+        x = x * math.sqrt(self.embedding.embedding_dim)
+        
+        # Step 3: Add Positional Encoding
+        # Add position information to each token
+        # This tells the model where each token is in the sequence
+        x = x + self.pos_encoding[:, :seq_len]  # [batch_size, seq_len, d_model]
+        
+        # Step 4: Apply Dropout
+        # Regularization to prevent overfitting
         x = self.dropout(x, training=training)
         
+        # Step 5: Process through Transformer Blocks
+        # Each block refines the understanding of the sequence
+        # The output of each block becomes the input to the next
         for transformer_block in self.transformer_blocks:
             x = transformer_block(x, mask, training)
         
-        output = self.final_layer(x)
+        # Step 6: Final Output Layer
+        # Project the final representations to vocabulary size
+        # This allows the model to predict the next token
+        output = self.final_layer(x)  # [batch_size, seq_len, vocab_size]
         return output
 
 # Example usage
@@ -156,6 +551,67 @@ max_seq_len = 512
 
 model = SimpleTransformer(vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_len)
 print("Model created successfully!")
+
+### 🎯 **Understanding the Model Parameters**
+
+Let's break down what each parameter means and why it's important:
+
+#### **Model Architecture Parameters:**
+
+1. **`vocab_size = 10000`**
+   - Number of unique tokens in your vocabulary
+   - Larger vocabulary = more words, but more parameters
+   - Typical values: 10K-50K for English models
+
+2. **`d_model = 512`**
+   - Dimension of the model (embedding dimension)
+   - Larger = more capacity, but more computation
+   - Typical values: 512 (small), 768 (medium), 1024 (large)
+
+3. **`num_heads = 8`**
+   - Number of attention heads
+   - Each head focuses on different aspects
+   - Usually d_model must be divisible by num_heads
+   - Typical values: 8, 12, 16
+
+4. **`num_layers = 6`**
+   - Number of Transformer blocks
+   - More layers = deeper understanding, but more computation
+   - Typical values: 6-24 for smaller models, 96+ for large models
+
+5. **`d_ff = 2048`**
+   - Dimension of feed-forward networks
+   - Usually 4x d_model for good performance
+   - Larger = more capacity in feed-forward layers
+
+6. **`max_seq_len = 512`**
+   - Maximum sequence length the model can handle
+   - Longer sequences = more context, but more memory
+   - Typical values: 512, 1024, 2048, 4096
+
+#### **Model Capacity Comparison:**
+
+| Model Size | d_model | num_layers | num_heads | Parameters | Use Case |
+|------------|---------|------------|-----------|------------|----------|
+| Small | 512 | 6 | 8 | ~15M | Learning, prototyping |
+| Medium | 768 | 12 | 12 | ~85M | Production, fine-tuning |
+| Large | 1024 | 24 | 16 | ~350M | Research, high performance |
+| XL | 2048 | 48 | 32 | ~1.5B | State-of-the-art |
+
+#### **Memory and Computation Considerations:**
+
+- **Memory**: Scales with `vocab_size × d_model + seq_len × d_model × num_layers`
+- **Computation**: Scales with `seq_len² × d_model × num_layers` (attention is quadratic)
+- **Training Time**: Scales with both memory and computation requirements
+
+### 🔧 **How to Use This Model**
+
+This model can be used for various language modeling tasks:
+
+1. **Text Generation**: Predict the next token in a sequence
+2. **Language Modeling**: Learn the probability distribution of text
+3. **Feature Extraction**: Use intermediate representations for other tasks
+4. **Fine-tuning**: Adapt to specific domains or tasks
 ```
 
 ### Understanding Attention Mechanisms
