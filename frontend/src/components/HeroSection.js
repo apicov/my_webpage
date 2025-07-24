@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 function HeroSection({ userInfo }) {
   const scrollToChat = () => {
@@ -59,5 +60,13 @@ function HeroSection({ userInfo }) {
     </section>
   );
 }
+
+HeroSection.propTypes = {
+  userInfo: PropTypes.shape({
+    name: PropTypes.string,
+    title: PropTypes.string,
+    bio: PropTypes.string
+  })
+};
 
 export default HeroSection; 

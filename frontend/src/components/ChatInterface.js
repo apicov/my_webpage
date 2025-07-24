@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { chatWithAI } from '../services/api';
 
 function ChatInterface({ userInfo }) {
@@ -36,11 +37,6 @@ function ChatInterface({ userInfo }) {
   };
 
   const sendMessage = async () => {
-    console.log('=== sendMessage called ===');
-    console.log('inputMessage:', inputMessage);
-    console.log('isTyping:', isTyping);
-    console.log('isProcessingRef.current:', isProcessingRef.current);
-    
     if (!inputMessage.trim() || isTyping || isProcessingRef.current) return;
 
     // Prevent duplicate calls in StrictMode
@@ -58,51 +54,30 @@ function ChatInterface({ userInfo }) {
     // First, add the user message to the chat
     setMessages(prevMessages => {
       const allMessages = [...prevMessages, userMessage];
-      console.log('Sending to API:', allMessages);
       return allMessages;
     });
     
     // Make the API call separately
-    console.log('=== Making API call ===');
     chatWithAI([...messages, userMessage]).then(response => {
-      console.log('API Response received:', response);
-      console.log('Response type:', typeof response);
-      console.log('Response keys:', Object.keys(response || {}));
-      
       if (response && (response.status === 'success' || response.response)) {
         let assistantMessages = [];
         
-        console.log('Response.response type:', typeof response.response);
-        console.log('Response.response is array:', Array.isArray(response.response));
-        console.log('Response.response value:', response.response);
-        
         if (Array.isArray(response.response)) {
           assistantMessages = response.response;
-          console.log('Response is array, length:', assistantMessages.length);
-          console.log('Response array content:', assistantMessages);
         } else if (response.response) {
           assistantMessages = [response.response];
-          console.log('Response is single object, wrapped in array');
-          console.log('Wrapped array content:', assistantMessages);
         } else {
-          console.log('No response data found');
-          console.log('Full response object:', response);
           return;
         }
-
-        console.log('Processing assistant messages:', assistantMessages);
         
         // Only take the last message from the response array (like HTML version)
         if (assistantMessages.length === 0) {
-          console.log('No assistant messages found in response');
           throw new Error('No assistant messages received');
         }
         
         const lastMessage = assistantMessages[assistantMessages.length - 1];
-        console.log('Last message from response:', lastMessage);
         
         if (!lastMessage || !lastMessage.content) {
-          console.log('Invalid last message format:', lastMessage);
           throw new Error('Invalid message format received');
         }
         
@@ -111,12 +86,8 @@ function ChatInterface({ userInfo }) {
           content: lastMessage.content,
           media: response.media
         };
-        console.log('Adding assistant message:', assistantMessage);
-        setMessages(prev => {
-          const newMessages = [...prev, assistantMessage];
-          console.log('Updated messages after assistant:', newMessages);
-          return newMessages;
-        });
+        
+        setMessages(prev => [...prev, assistantMessage]);
       } else {
         console.log('Invalid response format:', response);
         throw new Error('Invalid response format');
@@ -297,5 +268,13 @@ function ChatInterface({ userInfo }) {
     </section>
   );
 }
+
+ChatInterface.propTypes = {
+  userInfo: PropTypes.shape({
+    name: PropTypes.string,
+    title: PropTypes.string,
+    bio: PropTypes.string
+  })
+};
 
 export default ChatInterface; 

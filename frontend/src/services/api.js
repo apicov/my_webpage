@@ -11,10 +11,6 @@ const handleResponse = async (response) => {
 // Chat API
 export const chatWithAI = async (messages) => {
   try {
-    console.log('Sending chat request to:', `${API_BASE}/api/chat`);
-    console.log('Messages:', messages);
-    console.log('Messages JSON:', JSON.stringify(messages, null, 2));
-    
     const response = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: {
@@ -22,9 +18,6 @@ export const chatWithAI = async (messages) => {
       },
       body: JSON.stringify({ messages: messages })
     });
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
     
     return handleResponse(response);
   } catch (error) {

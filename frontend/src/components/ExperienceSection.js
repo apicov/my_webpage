@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 function ExperienceSection({ experience }) {
   return (
@@ -27,5 +28,16 @@ function ExperienceSection({ experience }) {
     </section>
   );
 }
+
+ExperienceSection.propTypes = {
+  experience: PropTypes.arrayOf(
+    PropTypes.shape({
+      role: PropTypes.string.isRequired,
+      company: PropTypes.string.isRequired,
+      period: PropTypes.string.isRequired,
+      description: PropTypes.string.isRequired
+    })
+  ).isRequired
+};
 
 export default ExperienceSection; 

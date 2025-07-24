@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 function SkillsSection({ skills }) {
   return (
@@ -19,5 +20,9 @@ function SkillsSection({ skills }) {
     </section>
   );
 }
+
+SkillsSection.propTypes = {
+  skills: PropTypes.arrayOf(PropTypes.string).isRequired
+};
 
 export default SkillsSection; 
