@@ -350,6 +350,548 @@ Enhanced with LLM:
 
 **This demonstrates mastery of cutting-edge AI development!**
 
+---
+
+## 🔍 **RAG Integration: Enhancing YOUR Assistant with Document Retrieval**
+
+### Why Add RAG to YOUR Assistant?
+
+**Your Current Approach vs RAG Enhancement:**
+
+**Current (Prompt Engineering):**
+```python
+# Your current approach in app.py
+with open("./data/summary.txt", "r", encoding="utf-8") as f:
+    summary = f.read()
+with open("./data/resume.md", "r", encoding="utf-8") as f:
+    resume = f.read()
+
+# All data goes into the prompt
+assistant = Assistant(name, last_name, summary, resume)
+```
+
+**Enhanced (RAG Integration):**
+```python
+# Enhanced approach with RAG
+from rag_system import RAGEnhancedAssistant, DocumentStore
+
+# Create document store for YOUR data
+doc_store = DocumentStore()
+doc_store.add_documents([
+    {"id": "summary", "content": summary, "metadata": {"type": "overview"}},
+    {"id": "resume", "content": resume, "metadata": {"type": "experience"}},
+    {"id": "projects", "content": load_project_details(), "metadata": {"type": "portfolio"}},
+    {"id": "skills", "content": load_detailed_skills(), "metadata": {"type": "competencies"}}
+])
+
+# RAG-enhanced assistant for YOUR platform
+rag_assistant = RAGEnhancedAssistant(
+    base_assistant=assistant,
+    document_store=doc_store,
+    retrieval_strategy="semantic_search"
+)
+```
+
+### Benefits of RAG for YOUR Platform
+
+**Why RAG is Perfect for Your Assistant:**
+- **Dynamic Context**: Only relevant information goes into prompts
+- **Scalable Knowledge**: Add unlimited documents without prompt size limits
+- **Better Responses**: More accurate answers from relevant document chunks
+- **Real-time Updates**: Update knowledge base without retraining
+- **Cost Effective**: Smaller prompts = lower API costs
+
+### RAG Architecture for YOUR Assistant
+
+**Enhanced app.py with RAG:**
+```python
+# Enhanced version of YOUR app.py with RAG
+from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
+from rag_enhanced_assistant import RAGAssistant
+from vector_store import ChromaVectorStore
+import json
+
+app = Flask(__name__)
+CORS(app)
+
+# Your existing data loading
+name = os.getenv("MY_NAME")
+last_name = os.getenv("MY_LAST_NAME")
+
+with open("./data/summary.txt", "r", encoding="utf-8") as f:
+    summary = f.read()
+with open("./data/resume.md", "r", encoding="utf-8") as f:
+    resume = f.read()
+
+# NEW: Enhanced document store for RAG
+def setup_rag_documents():
+    """Setup comprehensive document store for YOUR assistant"""
+    documents = [
+        {
+            "id": "personal_summary",
+            "content": summary,
+            "metadata": {"type": "overview", "category": "personal"}
+        },
+        {
+            "id": "professional_experience", 
+            "content": resume,
+            "metadata": {"type": "experience", "category": "professional"}
+        },
+        # NEW: Add more detailed documents
+        {
+            "id": "technical_projects",
+            "content": load_project_portfolio(),
+            "metadata": {"type": "projects", "category": "technical"}
+        },
+        {
+            "id": "skill_assessments",
+            "content": load_detailed_skills(),
+            "metadata": {"type": "skills", "category": "competencies"}
+        },
+        {
+            "id": "learning_journey",
+            "content": load_learning_progress(),
+            "metadata": {"type": "education", "category": "development"}
+        }
+    ]
+    return documents
+
+# Initialize RAG system for YOUR assistant
+vector_store = ChromaVectorStore(collection_name="your_assistant_knowledge")
+rag_assistant = RAGAssistant(
+    name=name,
+    last_name=last_name,
+    documents=setup_rag_documents(),
+    vector_store=vector_store
+)
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    try:
+        data = request.get_json()
+        messages = data.get('messages', [])
+        
+        # NEW: RAG-enhanced response generation
+        if messages:
+            user_query = messages[-1]['content']
+            
+            # Retrieve relevant documents based on query
+            relevant_docs = rag_assistant.retrieve_relevant_context(user_query)
+            
+            # Generate response with retrieved context
+            ai_response = rag_assistant.generate_rag_response(messages, relevant_docs)
+            
+            # Include retrieval information for YOUR React interface
+            response_with_sources = {
+                'response': [message_to_dict(m) for m in ai_response],
+                'retrieved_sources': [doc['metadata'] for doc in relevant_docs],
+                'context_used': len(relevant_docs),
+                'status': 'success'
+            }
+            
+            return jsonify(response_with_sources)
+        
+        # Fallback to original assistant
+        ai_response = get_ai_response(messages)
+        return jsonify({
+            'response': [message_to_dict(m) for m in ai_response],
+            'status': 'success'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': 'Something went wrong', 'status': 'error'}), 500
+
+@app.route('/api/rag/add-document', methods=['POST'])
+def add_document():
+    """NEW: Add documents to YOUR RAG system"""
+    try {
+        data = request.get_json()
+        document = {
+            "id": data.get('id'),
+            "content": data.get('content'),
+            "metadata": data.get('metadata', {})
+        }
+        
+        # Add to YOUR RAG system
+        rag_assistant.add_document(document)
+        
+        return jsonify({
+            'message': 'Document added successfully',
+            'document_id': document['id'],
+            'status': 'success'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e), 'status': 'error'}), 500
+
+@app.route('/api/rag/search', methods=['POST'])
+def search_documents():
+    """NEW: Search YOUR knowledge base"""
+    try {
+        data = request.get_json()
+        query = data.get('query', '')
+        
+        # Search YOUR documents
+        results = rag_assistant.search_knowledge_base(query)
+        
+        return jsonify({
+            'results': results,
+            'query': query,
+            'total_found': len(results),
+            'status': 'success'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e), 'status': 'error'}), 500
+
+# Your existing routes continue...
+@app.route('/')
+def home():
+    return render_template('homepage.html', info=PERSONAL_INFO)
+
+@app.route('/api/user-info')
+def user_info():
+    return jsonify(PERSONAL_INFO)
+```
+
+### RAG-Enhanced ChatInterface.js
+
+**Enhanced YOUR React interface with RAG features:**
+```jsx
+// Enhanced ChatInterface.js with RAG awareness
+import React, { useState, useEffect, useRef } from 'react';
+import { chatWithAI, searchDocuments, addDocument } from '../services/api';
+
+function ChatInterface({ userInfo }) {
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  
+  // NEW: RAG-specific state
+  const [showSources, setShowSources] = useState(false);
+  const [retrievedSources, setRetrievedSources] = useState([]);
+  const [knowledgeBase, setKnowledgeBase] = useState([]);
+  const [ragMode, setRAGMode] = useState(true);
+  
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isTyping) return;
+    
+    setIsTyping(true);
+    const userMessage = { role: 'user', content: inputMessage };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    
+    try {
+      const response = await chatWithAI([...messages, userMessage]);
+      
+      if (response && response.status === 'success') {
+        // NEW: Handle RAG-enhanced responses
+        if (response.retrieved_sources) {
+          setRetrievedSources(response.retrieved_sources);
+          
+          // Add source information to the message
+          const ragEnhancedMessages = response.response.map(msg => ({
+            ...msg,
+            rag_enhanced: true,
+            sources_count: response.context_used
+          }));
+          
+          setMessages(prev => [...prev, ...ragEnhancedMessages]);
+        } else {
+          setMessages(prev => [...prev, ...response.response]);
+        }
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry, something went wrong. Please try again.'
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+  
+  // NEW: Search knowledge base
+  const searchKnowledgeBase = async (query) => {
+    try {
+      const response = await searchDocuments({ query });
+      setKnowledgeBase(response.results);
+      
+      // Show search results in chat
+      addMessage('system', `Found ${response.total_found} relevant documents for: "${query}"`);
+    } catch (error) {
+      console.error('Search failed:', error);
+    }
+  };
+  
+  // NEW: Add document to knowledge base
+  const addDocumentToRAG = async (content, metadata) => {
+    try {
+      const response = await addDocument({
+        id: `user_doc_${Date.now()}`,
+        content,
+        metadata
+      });
+      
+      addMessage('system', `Document added to knowledge base: ${metadata.title || 'Untitled'}`);
+    } catch (error) {
+      console.error('Failed to add document:', error);
+    }
+  };
+  
+  return (
+    <div className="chat-interface">
+      {/* Enhanced chat header with RAG controls */}
+      <div className="chat-header">
+        <h4>AI Assistant with RAG</h4>
+        <p>Enhanced with retrieval-augmented generation</p>
+        
+        {/* NEW: RAG controls */}
+        <div className="rag-controls">
+          <button 
+            onClick={() => setRAGMode(!ragMode)}
+            className={`rag-toggle ${ragMode ? 'active' : ''}`}
+          >
+            {ragMode ? '🔍 RAG ON' : '💬 Direct Mode'}
+          </button>
+          
+          <button 
+            onClick={() => setShowSources(!showSources)}
+            className={`sources-toggle ${showSources ? 'active' : ''}`}
+          >
+            📚 Sources ({retrievedSources.length})
+          </button>
+        </div>
+      </div>
+      
+      {/* NEW: Retrieved sources panel */}
+      {showSources && retrievedSources.length > 0 && (
+        <div className="sources-panel">
+          <h5>Retrieved Sources:</h5>
+          {retrievedSources.map((source, index) => (
+            <div key={index} className="source-item">
+              <span className="source-type">{source.type}</span>
+              <span className="source-category">{source.category}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Enhanced chat messages with RAG indicators */}
+      <div className="chat-messages">
+        {messages.map((message, index) => (
+          <div key={index} className={`message ${message.role}`}>
+            {message.rag_enhanced && (
+              <div className="rag-indicator">
+                🔍 RAG Enhanced ({message.sources_count} sources)
+              </div>
+            )}
+            <p>{message.content}</p>
+          </div>
+        ))}
+      </div>
+      
+      {/* Enhanced input with RAG features */}
+      <div className="chat-input">
+        <input
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+          placeholder={ragMode 
+            ? "Ask anything - I'll search my knowledge base..."
+            : "Direct conversation mode..."
+          }
+        />
+        <button onClick={sendMessage} disabled={isTyping}>
+          {isTyping ? '🔍' : '📤'}
+        </button>
+        
+        {/* NEW: Quick actions */}
+        <div className="rag-quick-actions">
+          <button onClick={() => searchKnowledgeBase(inputMessage)}>
+            🔍 Search Docs
+          </button>
+          <button onClick={() => document.getElementById('file-upload').click()}>
+            📄 Add Doc
+          </button>
+        </div>
+      </div>
+      
+      {/* NEW: File upload for adding documents */}
+      <input
+        id="file-upload"
+        type="file"
+        accept=".txt,.md,.pdf"
+        style={{ display: 'none' }}
+        onChange={(e) => handleFileUpload(e.target.files[0])}
+      />
+    </div>
+  );
+  
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      await addDocumentToRAG(e.target.result, {
+        title: file.name,
+        type: 'user_upload',
+        category: 'additional'
+      });
+    };
+    reader.readAsText(file);
+  };
+}
+```
+
+### RAG Implementation Architecture
+
+**Your RAG System Structure:**
+```python
+# rag_enhanced_assistant.py - NEW file for YOUR platform
+import chromadb
+from sentence_transformers import SentenceTransformer
+import numpy as np
+
+class RAGAssistant:
+    """RAG-enhanced version of YOUR AI assistant"""
+    
+    def __init__(self, name, last_name, documents, vector_store):
+        self.name = name
+        self.last_name = last_name
+        self.vector_store = vector_store
+        self.embeddings_model = SentenceTransformer('all-MiniLM-L6-v2')
+        
+        # Index YOUR documents
+        self.index_documents(documents)
+    
+    def index_documents(self, documents):
+        """Index YOUR documents for retrieval"""
+        for doc in documents:
+            # Create embeddings for YOUR content
+            embedding = self.embeddings_model.encode(doc['content'])
+            
+            # Store in YOUR vector database
+            self.vector_store.add(
+                ids=[doc['id']],
+                embeddings=[embedding.tolist()],
+                documents=[doc['content']],
+                metadatas=[doc['metadata']]
+            )
+    
+    def retrieve_relevant_context(self, query, k=3):
+        """Retrieve relevant documents for YOUR queries"""
+        # Embed the user query
+        query_embedding = self.embeddings_model.encode(query)
+        
+        # Search YOUR knowledge base
+        results = self.vector_store.query(
+            query_embeddings=[query_embedding.tolist()],
+            n_results=k
+        )
+        
+        # Format results for YOUR assistant
+        relevant_docs = []
+        for i, doc in enumerate(results['documents'][0]):
+            relevant_docs.append({
+                'content': doc,
+                'metadata': results['metadatas'][0][i],
+                'similarity': 1 - results['distances'][0][i]  # Convert distance to similarity
+            })
+        
+        return relevant_docs
+    
+    def generate_rag_response(self, messages, relevant_docs):
+        """Generate response using retrieved context"""
+        # Build context from retrieved documents
+        context = "\n\n".join([
+            f"Source ({doc['metadata']['type']}): {doc['content']}"
+            for doc in relevant_docs
+        ])
+        
+        # Enhanced prompt with retrieved context
+        enhanced_prompt = f"""
+        You are {self.name} {self.last_name}'s AI assistant. Use the following context to answer questions accurately:
+        
+        RETRIEVED CONTEXT:
+        {context}
+        
+        USER CONVERSATION:
+        {self.format_conversation(messages)}
+        
+        Provide a helpful response based on the retrieved context. If the context doesn't contain relevant information, say so clearly.
+        """
+        
+        # Generate response (integrate with your existing AI model)
+        return self.call_ai_model(enhanced_prompt)
+    
+    def add_document(self, document):
+        """Add new document to YOUR knowledge base"""
+        embedding = self.embeddings_model.encode(document['content'])
+        
+        self.vector_store.add(
+            ids=[document['id']],
+            embeddings=[embedding.tolist()],
+            documents=[document['content']],
+            metadatas=[document['metadata']]
+        )
+    
+    def search_knowledge_base(self, query, k=5):
+        """Search YOUR knowledge base directly"""
+        query_embedding = self.embeddings_model.encode(query)
+        
+        results = self.vector_store.query(
+            query_embeddings=[query_embedding.tolist()],
+            n_results=k
+        )
+        
+        return [
+            {
+                'content': doc,
+                'metadata': results['metadatas'][0][i],
+                'similarity': 1 - results['distances'][0][i]
+            }
+            for i, doc in enumerate(results['documents'][0])
+        ]
+```
+
+### RAG Benefits for YOUR Platform
+
+**Immediate Improvements:**
+- **Better Accuracy**: Responses based on your actual documents
+- **Scalable Knowledge**: Add unlimited content without prompt limits
+- **Source Attribution**: Know which documents informed each response
+- **Dynamic Updates**: Update knowledge without retraining
+- **Cost Efficiency**: Smaller, more targeted prompts
+
+**Perfect for YOUR Use Case:**
+- **Portfolio Details**: Store comprehensive project descriptions
+- **Skill Documentation**: Detailed competency assessments
+- **Learning Progress**: Track and reference your educational journey
+- **Experience Deep Dives**: Rich context about your professional background
+
+### Next Steps: Implementing RAG in YOUR Platform
+
+**Week 1: RAG Foundation**
+- Set up vector database (ChromaDB) for YOUR documents
+- Implement basic retrieval for YOUR current data
+- Test RAG responses in YOUR ChatInterface.js
+
+**Week 2: Enhanced Documents**
+- Create detailed documents about YOUR projects and skills
+- Implement document upload feature in YOUR React interface
+- Add source attribution to YOUR chat responses
+
+**Week 3: Advanced RAG**
+- Implement semantic search in YOUR platform
+- Add document management UI to YOUR interface
+- Optimize retrieval for YOUR specific use cases
+
+**This RAG enhancement transforms YOUR assistant from basic prompt engineering to a sophisticated knowledge retrieval system!**
+
+---
+
 ## 🧠 What are Large Language Models?
 
 Large Language Models (LLMs) are the technology behind ChatGPT, GPT-4, and other advanced AI systems. For YOUR assistant, this means:

@@ -135,18 +135,25 @@ Week 3: Advanced JS + API Integration + Optimization + Fine-tuning
 - Stream live video from YOUR IoT devices
 - YOUR AI assistant can analyze visual data
 
-#### **Week 6: Performance & Optimization of YOUR Platform**
+#### **Week 6: RAG Enhancement & Knowledge Management**
 **Daily Schedule:**
 - **30 min**: Optimize YOUR React performance (REACT_TUTORIAL.md - Chapter 8)
-- **30 min**: Optimize YOUR TinyML models (TINYML_ADVANCED_TUTORIAL.md - Chapter 2)
-- **30 min**: Optimize YOUR video streaming (IOT_WEBCAM_TUTORIAL.md - Chapter 4)
-- **30 min**: Optimize YOUR AI agent performance (LLM_AGENTS_KERAS3_TUTORIAL.md - Chapter 3)
-- **30 min**: Performance test YOUR entire platform
+- **30 min**: Implement RAG for YOUR AI assistant (LLM_FUNDAMENTALS_KERAS3_TUTORIAL.md - RAG Section)
+- **30 min**: Add document management to YOUR chat interface (Advanced React patterns)
+- **30 min**: Enhance YOUR assistant with vector search capabilities (LLM_AGENTS_KERAS3_TUTORIAL.md - Chapter 3)
+- **30 min**: Test RAG integration with YOUR platform
 
 **YOUR Platform Enhancement Goal:**
-- YOUR platform runs efficiently across all components
-- YOUR AI models are optimized for real-time use
-- YOUR user experience is smooth and responsive
+- Transform YOUR assistant from prompt engineering to RAG
+- Add document upload and search to YOUR chat interface
+- YOUR assistant can retrieve and reference specific documents
+- Better accuracy and source attribution in YOUR chat
+
+**Integration Focus:**
+- YOUR current summary.txt and resume.md become part of vector database
+- YOUR React interface shows retrieved sources for each response
+- YOUR Flask backend serves RAG-enhanced responses
+- YOUR knowledge base grows with additional documents
 
 #### **Week 7: Advanced Integration in YOUR Platform**
 **Daily Schedule:**
