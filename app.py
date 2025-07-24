@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 import json
 import time
 import os
@@ -9,6 +10,7 @@ from  ai_assistant import Assistant
 
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for React frontend
 
 name = os.getenv("MY_NAME")
 last_name = os.getenv("MY_LAST_NAME")
@@ -71,6 +73,11 @@ def chat():
             'error': 'Something went wrong',
             'status': 'error'
         }), 500
+
+@app.route('/api/user-info')
+def user_info():
+    """API endpoint to get user information for React frontend"""
+    return jsonify(PERSONAL_INFO)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
