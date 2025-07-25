@@ -8,7 +8,7 @@ const getApiBaseUrl = () => {
   // Default behavior based on environment
   if (process.env.NODE_ENV === 'production') {
     // In production, API is served from same domain at /api
-    return '';
+    return '/api';
   } else {
     // In development, Flask runs on port 5000
     return 'http://localhost:5000';
@@ -40,7 +40,7 @@ const handleNetworkError = (error, operation) => {
 // Chat API
 export const chatWithAI = async (messages) => {
   try {
-    const response = await fetch(`${API_BASE}/api/chat`, {
+    const response = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export const chatWithAI = async (messages) => {
 // Get user info
 export const getUserInfo = async () => {
   try {
-    const response = await fetch(`${API_BASE}/api/user-info`, {
+    const response = await fetch(`${API_BASE}/user-info`, {
       signal: AbortSignal.timeout(10000) // 10 second timeout
     });
     return handleResponse(response);
@@ -71,7 +71,7 @@ export const getUserInfo = async () => {
 // IoT Device APIs (for future use)
 export const getDevices = async () => {
   try {
-    const response = await fetch(`${API_BASE}/api/devices`, {
+    const response = await fetch(`${API_BASE}/devices`, {
       signal: AbortSignal.timeout(10000)
     });
     return handleResponse(response);
@@ -82,7 +82,7 @@ export const getDevices = async () => {
 
 export const controlDevice = async (deviceId, command) => {
   try {
-    const response = await fetch(`${API_BASE}/api/devices/${deviceId}/control`, {
+    const response = await fetch(`${API_BASE}/devices/${deviceId}/control`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ export const controlDevice = async (deviceId, command) => {
 
 export const getDeviceData = async (deviceId) => {
   try {
-    const response = await fetch(`${API_BASE}/api/devices/${deviceId}/data`, {
+    const response = await fetch(`${API_BASE}/devices/${deviceId}/data`, {
       signal: AbortSignal.timeout(10000)
     });
     return handleResponse(response);
