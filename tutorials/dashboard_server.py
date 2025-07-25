@@ -285,7 +285,17 @@ def dashboard():
     """Main tutorial dashboard with navigation"""
     progress_data = load_progress()
     progress_stats = calculate_progress_stats(progress_data)
-    return render_template('dashboard.html', tutorials=TUTORIALS, personal_info={'name': 'Developer'}, progress_stats=progress_stats)
+    
+    # Separate technical tutorials from meta-learning resources
+    excluded_tutorials = {'study-guide', 'roadmap'}
+    technical_tutorials = {k: v for k, v in TUTORIALS.items() if k not in excluded_tutorials}
+    meta_tutorials = {k: v for k, v in TUTORIALS.items() if k in excluded_tutorials}
+    
+    return render_template('dashboard.html', 
+                         tutorials=technical_tutorials, 
+                         meta_tutorials=meta_tutorials,
+                         personal_info={'name': 'Developer'}, 
+                         progress_stats=progress_stats)
 
 @app.route('/tutorial/<tutorial_id>')
 def tutorial_viewer(tutorial_id):
