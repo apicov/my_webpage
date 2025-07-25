@@ -116,20 +116,23 @@ sudo chown -R www-data:www-data /var/www/html/my_webpage
 sudo chmod -R 755 /var/www/html/my_webpage
 ```
 
-### Step 4: Update Frontend API URLs
+### Step 4: Build Frontend for Production
 
-Update `frontend/src/services/api.js` for production:
+The `api.js` file automatically detects the environment and configures URLs:
+- **Development**: `http://localhost:5000/api/*`
+- **Production**: Relative URLs (`/api/*`) - works with Apache
 
-```javascript
-// Replace localhost with your domain
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://yourdomain.com/api'  // Your actual domain
-  : 'http://localhost:5000/api';
+```bash
+# Build React for production
+cd frontend
+npm run build
 ```
 
-Rebuild frontend after changes:
+**Optional**: Set custom API URL via environment variable:
 ```bash
-cd frontend && npm run build
+# For custom API endpoint
+export REACT_APP_API_URL=https://api.yourdomain.com
+npm run build
 ```
 
 ### Step 5: Create Apache Virtual Host
