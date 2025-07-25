@@ -76,6 +76,13 @@ def calculate_progress_stats(progress_data):
 
 # Tutorial configuration
 TUTORIALS = {
+    'codebase-overview': {
+        'title': 'Understanding Your Codebase',
+        'file': 'CODEBASE_OVERVIEW.md',
+        'description': 'Complete architecture guide to YOUR React + Flask system',
+        'level': 'Foundation',
+        'duration': '45-60 minutes'
+    },
     'prerequisites': {
         'title': 'Prerequisites: Modern JavaScript',
         'file': 'PREREQUISITES_TUTORIAL.md',

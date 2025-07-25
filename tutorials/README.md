@@ -8,7 +8,7 @@ Welcome to your comprehensive AI learning ecosystem! This directory contains all
 1. **Open** [`LEARNING_DASHBOARD.html`](./LEARNING_DASHBOARD.html) in your browser
 2. **Read** [`HOW_TO_STUDY_TUTORIALS.md`](./HOW_TO_STUDY_TUTORIALS.md) for optimal learning strategy
 3. **Check** [`PROJECT_ROADMAP.md`](./PROJECT_ROADMAP.md) for your 12-week plan
-4. **Begin** with [`REACT_TUTORIAL.md`](./REACT_TUTORIAL.md) to understand your current code
+4. **Begin** with [`CODEBASE_OVERVIEW.md`](./CODEBASE_OVERVIEW.md) to understand your current architecture
 
 ### **📖 Learning Strategy & Planning**
 - **[`HOW_TO_STUDY_TUTORIALS.md`](./HOW_TO_STUDY_TUTORIALS.md)** - ⭐ **START HERE** - Meta-learning strategy for parallel study
@@ -23,6 +23,7 @@ Welcome to your comprehensive AI learning ecosystem! This directory contains all
 ### **🔧 Phase 1: Master & Enhance Your Platform (Weeks 1-4)**
 
 #### **Week 1: Foundation**
+- **[`CODEBASE_OVERVIEW.md`](./CODEBASE_OVERVIEW.md)** - ⭐ **START HERE** - Complete architecture guide
 - **[`PREREQUISITES_TUTORIAL.md`](./PREREQUISITES_TUTORIAL.md)** - Modern JavaScript through YOUR code
 - **[`REACT_TUTORIAL.md`](./REACT_TUTORIAL.md)** - React development using YOUR ChatInterface.js
 
@@ -41,6 +42,11 @@ Welcome to your comprehensive AI learning ecosystem! This directory contains all
 ---
 
 ## 📋 **Tutorial Index by Technology**
+
+### **🏗️ Foundation & Architecture**
+| Tutorial | Focus | Duration | Builds On |
+|----------|--------|----------|-----------|
+| [`CODEBASE_OVERVIEW.md`](./CODEBASE_OVERVIEW.md) | **Complete architecture guide** | 45-60 min | YOUR current system |
 
 ### **💻 Frontend Development**
 | Tutorial | Focus | Duration | Builds On |
