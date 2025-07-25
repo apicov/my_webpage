@@ -1742,6 +1742,136 @@ class BaseAgent:
             }
         )
 
+class EnhancedAssistantAgent(BaseAgent):
+    """
+    Enhanced agent that wraps YOUR existing Assistant class with autonomous capabilities.
+    This preserves all your existing functionality while adding agent features.
+    """
+    
+    def __init__(self, agent_id: str, role: AgentRole, your_assistant, capabilities: List[str] = None):
+        # Initialize base agent
+        super().__init__(agent_id, role, None)  # No LLM client - we use YOUR assistant's
+        
+        # Wrap YOUR existing Assistant
+        self.your_assistant = your_assistant
+        self.capabilities = capabilities or ["professional_representation", "career_guidance", "tool_usage"]
+        
+        # Agent-specific enhancements
+        self.conversation_context = []
+        self.autonomous_mode = False
+        self.goals = []
+        self.memory_manager = None  # Will be set later if needed
+    
+    def handle_message(self, message: Message) -> Optional[Any]:
+        """Handle message using YOUR Assistant enhanced with agent capabilities."""
+        try:
+            # Convert agent message to your assistant's format
+            conversation_messages = [{"role": "user", "content": str(message.content)}]
+            
+            # Add conversation context for continuity
+            if self.conversation_context:
+                conversation_messages = self.conversation_context + conversation_messages
+            
+            # Use YOUR existing Assistant's get_response method
+            assistant_responses = self.your_assistant.get_response(conversation_messages)
+            
+            # Extract response content
+            response_content = ""
+            if assistant_responses:
+                first_response = assistant_responses[0]
+                if hasattr(first_response, 'content'):
+                    response_content = first_response.content
+                elif isinstance(first_response, dict):
+                    response_content = first_response.get('content', str(first_response))
+                else:
+                    response_content = str(first_response)
+            
+            # Update conversation context (keep last 10 exchanges)
+            self.conversation_context.extend([
+                {"role": "user", "content": str(message.content)},
+                {"role": "assistant", "content": response_content}
+            ])
+            self.conversation_context = self.conversation_context[-20:]  # Keep last 10 exchanges
+            
+            # Store in memory if available
+            if self.memory_manager:
+                self.memory_manager.store_memory(Memory(
+                    memory_id=f"conv_{datetime.now().timestamp()}",
+                    memory_type=MemoryType.EPISODIC,
+                    content=f"User: {message.content}\nAssistant: {response_content}",
+                    importance=0.8,
+                    timestamp=datetime.now()
+                ))
+            
+            # Send response back if it's not a broadcast
+            if message.receiver_id and message.receiver_id != "all":
+                self.send_message(
+                    receiver_id=message.sender_id,
+                    message_type=MessageType.RESPONSE,
+                    content=response_content
+                )
+            
+            return response_content
+            
+        except Exception as e:
+            error_msg = f"I apologize, but I encountered an error: {str(e)}. Please try again."
+            if message.receiver_id and message.receiver_id != "all":
+                self.send_message(
+                    receiver_id=message.sender_id,
+                    message_type=MessageType.RESPONSE,
+                    content=error_msg
+                )
+            return error_msg
+    
+    def process_input(self, user_input: str) -> str:
+        """Direct input processing for chat interface compatibility."""
+        try:
+            # Use YOUR assistant directly for simple input
+            conversation_messages = [{"role": "user", "content": user_input}]
+            
+            # Add context if available
+            if self.conversation_context:
+                conversation_messages = self.conversation_context + conversation_messages
+            
+            responses = self.your_assistant.get_response(conversation_messages)
+            
+            if responses:
+                first_response = responses[0]
+                if hasattr(first_response, 'content'):
+                    return first_response.content
+                elif isinstance(first_response, dict):
+                    return first_response.get('content', str(first_response))
+                else:
+                    return str(first_response)
+            
+            return "I'm sorry, I couldn't process that request."
+            
+        except Exception as e:
+            return f"I apologize, but I encountered an error: {str(e)}. Please try again."
+    
+    def enable_autonomous_mode(self, goals: List[str]):
+        """Enable autonomous operation with specific goals."""
+        self.autonomous_mode = True
+        self.goals = goals
+        self.status = "autonomous"
+        
+    def get_status_report(self) -> Dict:
+        """Get detailed status of the enhanced assistant."""
+        memory_count = 0
+        if self.memory_manager and hasattr(self.memory_manager, 'memories'):
+            memory_count = len(self.memory_manager.memories)
+        
+        return {
+            "agent_id": self.agent_id,
+            "status": self.status,
+            "autonomous_mode": self.autonomous_mode,
+            "goals": self.goals,
+            "conversation_turns": len(self.conversation_context) // 2,
+            "memory_count": memory_count,
+            "capabilities": self.capabilities,
+            "assistant_model": getattr(self.your_assistant, 'model', 'llama-3.3-70b-versatile')
+        }
+
 class CoordinatorAgent(BaseAgent):
     """
     Coordinator agent that manages task distribution and execution.
@@ -2176,11 +2306,21 @@ class PlatformAgentManager:
         self.mas.add_agent(analysis_agent)
         self.mas.add_agent(synthesis_agent)
     
-    def create_conversation_session(self, session_id: str) -> Dict:
-        """Create a new conversation session with agent support."""
-        # Create personal assistant agent for this session
-        personal_agent = SpecialistAgent(f"assistant_{session_id}", "general")
-        personal_agent.memory_manager = MemoryManager()  # Give agent memory
+    def create_conversation_session(self, session_id: str, name: str, last_name: str, summary: str, resume: str) -> Dict:
+        """Create a new conversation session that enhances YOUR existing Assistant."""
+        # Import YOUR existing Assistant class
+        from AI_career_assistant.ai_assistant.assistant import Assistant
+        
+        # Create an enhanced agent that wraps YOUR Assistant
+        personal_agent = EnhancedAssistantAgent(
+            agent_id=f"assistant_{session_id}",
+            role=AgentRole.SPECIALIST,
+            your_assistant=Assistant(name, last_name, summary, resume),  # YOUR existing Assistant
+            capabilities=["professional_representation", "career_guidance", "tool_usage", "autonomous_reasoning"]
+        )
+        
+        # Add memory capabilities to your assistant
+        personal_agent.memory_manager = MemoryManager()
         
         self.mas.add_agent(personal_agent)
         self.conversation_agents[session_id] = personal_agent.agent_id
@@ -2189,14 +2329,16 @@ class PlatformAgentManager:
             "start_time": datetime.now(),
             "agent_id": personal_agent.agent_id,
             "conversation_history": [],
-            "active_projects": []
+            "active_projects": [],
+            "assistant_name": f"{name} {last_name}"
         }
         
         return {
             "session_id": session_id,
             "agent_id": personal_agent.agent_id,
             "capabilities": personal_agent.capabilities,
-            "status": "ready"
+            "status": "ready",
+            "assistant_name": f"{name} {last_name}"
         }
     
     def process_conversation_message(self, session_id: str, message: str) -> Dict:

@@ -2097,28 +2097,192 @@ class RAGEnhancedAssistant:
         
         return response
 
-# Flask integration example
-def integrate_rag_with_flask():
+# Integration with YOUR actual AI assistant
+def integrate_rag_with_your_assistant():
     """
-    Example of how to integrate RAG with your Flask app.py
+    How to enhance YOUR actual Assistant class with RAG capabilities.
+    This builds on your existing AI_career_assistant architecture.
     """
     
-    flask_integration_code = '''
-# Enhanced app.py with RAG integration
-from ai_assistant import Assistant
-from rag_integration import RAGEnhancedAssistant
+    # Understanding YOUR current architecture first
+    your_current_setup = '''
+# YOUR ACTUAL AI_career_assistant/ai_assistant/assistant.py
+class Assistant(Agent):
+    def __init__(self, name, last_name, summary, resume):
+        system_prompt = self.get_prompt(name, last_name, summary, resume)
+        Agent.__init__(self, tools_dict, tools_json, system_prompt, model="llama-3.3-70b-versatile")
 
-# Your existing setup
+# YOUR ACTUAL AI_career_assistant/ai_assistant/agent.py  
+class Agent:
+    def __init__(self, tools_dict, tools_json, system_prompt, model="llama-3.3-70b-versatile"):
+        self.tools = tools_dict
+        self.client = OpenAI(api_key=Config.GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+    
+    def get_response(self, messages):
+        # Your existing LLM interaction with tool calling
+        return output_messages
+
+# YOUR ACTUAL app.py
+from AI_career_assistant.ai_assistant import Assistant
+assistant = Assistant(name, last_name, summary, resume)
+'''
+
+    # Enhanced version that builds on YOUR code
+    enhanced_assistant_code = '''
+# NEW FILE: AI_career_assistant/ai_assistant/rag_assistant.py
+from ai_assistant.assistant import Assistant  # Import YOUR Assistant
+from ai_assistant.agent import Agent
+import chromadb
+from sentence_transformers import SentenceTransformer
+
+class RAGEnhancedAssistant(Assistant):
+    """
+    Enhanced version of YOUR existing Assistant class with RAG capabilities.
+    Inherits from YOUR Assistant, so all your existing functionality is preserved.
+    """
+    
+    def __init__(self, name, last_name, summary, resume, knowledge_base_path=None):
+        # Initialize YOUR existing Assistant with all its functionality
+        super().__init__(name, last_name, summary, resume)
+        
+        # Add RAG capabilities on top
+        self.setup_rag_system()
+        self.name = name
+        self.last_name = last_name
+        
+        # Add your existing documents to the knowledge base
+        self.add_document(summary, {"type": "summary", "source": "profile"})
+        self.add_document(resume, {"type": "resume", "source": "profile"})
+        
+    def setup_rag_system(self):
+        """Set up the RAG system with vector database and embeddings."""
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.chroma_client = chromadb.Client()
+        
+        try:
+            self.collection = self.chroma_client.get_collection("knowledge_base")
+        except:
+            self.collection = self.chroma_client.create_collection("knowledge_base")
+    
+    def add_document(self, content: str, metadata: dict = None):
+        """Add a document to the knowledge base."""
+        if metadata is None:
+            metadata = {}
+            
+        embedding = self.embedding_model.encode([content])
+        doc_id = f"doc_{len(self.collection.get()['ids'])}"
+        
+        self.collection.add(
+            embeddings=embedding.tolist(),
+            documents=[content],
+            metadatas=[metadata],
+            ids=[doc_id]
+        )
+        return doc_id
+    
+    def search_knowledge(self, query: str, top_k: int = 3):
+        """Search the knowledge base for relevant information."""
+        query_embedding = self.embedding_model.encode([query])
+        results = self.collection.query(
+            query_embeddings=query_embedding.tolist(),
+            n_results=top_k
+        )
+        
+        relevant_docs = []
+        for i in range(len(results['documents'][0])):
+            relevant_docs.append({
+                'content': results['documents'][0][i],
+                'metadata': results['metadatas'][0][i],
+                'score': 1 - results['distances'][0][i]
+            })
+        return relevant_docs
+    
+    def get_enhanced_response(self, messages):
+        """
+        Enhanced version of YOUR get_response method with RAG capabilities.
+        Still uses all your existing tools and functionality.
+        """
+        if not messages:
+            return []
+        
+        # Get the last user message for context search
+        last_user_message = None
+        for msg in reversed(messages):
+            if msg.get('role') == 'user':
+                last_user_message = msg.get('content', '')
+                break
+        
+        if last_user_message:
+            # Search for relevant knowledge
+            relevant_docs = self.search_knowledge(last_user_message, top_k=3)
+            
+            if relevant_docs and relevant_docs[0]['score'] > 0.3:
+                context = "\\n\\n".join([doc['content'] for doc in relevant_docs])
+                enhanced_prompt = f"""
+RELEVANT CONTEXT INFORMATION:
+{context}
+
+Use this context to enhance your response when relevant.
+"""
+                
+                context_message = {"role": "system", "content": enhanced_prompt}
+                enhanced_messages = [context_message] + messages
+                
+                # Use YOUR existing get_response method with enhanced context
+                return super().get_response(enhanced_messages)
+        
+        # Fall back to YOUR existing implementation
+        return super().get_response(messages)
+'''
+
+    # Enhanced version of YOUR app.py
+    enhanced_app_py = '''
+# Enhanced version of YOUR existing app.py
+from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
+import json
+import time
+import os
+
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
+# Import YOUR enhanced assistant instead of the basic one
+from AI_career_assistant.ai_assistant.rag_assistant import RAGEnhancedAssistant
+
+app = Flask(__name__)
+CORS(app)  # Enable CORS for React frontend
+
+# YOUR existing configuration (unchanged)
+name = os.getenv("MY_NAME")
+last_name = os.getenv("MY_LAST_NAME")
+
+# Load YOUR existing data (unchanged)
 with open("./data/summary.txt", "r", encoding="utf-8") as f:
     summary = f.read()
 with open("./data/resume.md", "r", encoding="utf-8") as f:
     resume = f.read()
 
-# Create base assistant
-base_assistant = Assistant(name, last_name, summary, resume)
+# Use YOUR enhanced assistant instead of the basic Assistant
+assistant = RAGEnhancedAssistant(name, last_name, summary, resume)
 
-# Create RAG-enhanced assistant
-rag_assistant = RAGEnhancedAssistant(base_assistant)
+# YOUR existing helper functions (unchanged)
+def message_to_dict(msg):
+    if isinstance(msg, dict):
+        return msg
+    if hasattr(msg, 'to_dict'):
+        return msg.to_dict()
+    return vars(msg)
+
+def get_ai_response(messages):
+    # Now uses YOUR enhanced RAG assistant but keeps YOUR interface
+    response = assistant.get_enhanced_response(messages)
+    return response
+
+# YOUR existing routes (unchanged)
+@app.route('/')
+def home():
+    return render_template('homepage.html', info=PERSONAL_INFO)
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -2126,10 +2290,10 @@ def chat():
         data = request.get_json()
         messages = data.get('messages', [])
         
-        # Use RAG-enhanced assistant
-        ai_response = rag_assistant.get_enhanced_response(messages)
-        
+        # YOUR existing chat logic, now with RAG enhancement
+        ai_response = get_ai_response(messages)
         messages_dicts = [message_to_dict(m) for m in ai_response]
+        
         return jsonify({
             'response': messages_dicts,
             'status': 'success'
@@ -2137,31 +2301,49 @@ def chat():
     except Exception as e:
         return jsonify({'error': 'Something went wrong', 'status': 'error'}), 500
 
-@app.route('/api/rag/add_document', methods=['POST'])
-def add_document():
-    """Add new document to RAG system"""
+# NEW: Add endpoints for knowledge management (optional)
+@app.route('/api/knowledge/add', methods=['POST'])
+def add_knowledge():
+    """Add new document to YOUR assistant's knowledge base."""
     try:
         data = request.get_json()
-        document = {
-            'content': data.get('content'),
-            'metadata': data.get('metadata', {})
-        }
-        rag_assistant.document_store.add_documents([document])
-        return jsonify({'status': 'success', 'message': 'Document added'})
+        content = data.get('content')
+        metadata = data.get('metadata', {})
+        
+        if not content:
+            return jsonify({'error': 'Content is required', 'status': 'error'}), 400
+        
+        doc_id = assistant.add_document(content, metadata)
+        return jsonify({
+            'document_id': doc_id,
+            'status': 'success',
+            'message': 'Document added to knowledge base'
+        })
     except Exception as e:
         return jsonify({'error': str(e), 'status': 'error'}), 500
 
-@app.route('/api/rag/search', methods=['POST'])
-def search_documents():
-    """Search documents in RAG system"""
+@app.route('/api/knowledge/search', methods=['POST'])
+def search_knowledge():
+    """Search YOUR assistant's knowledge base."""
     try:
         data = request.get_json()
         query = data.get('query')
-        results = rag_assistant.document_store.search(query, top_k=5)
-        return jsonify({'results': results, 'status': 'success'})
+        top_k = data.get('top_k', 5)
+        
+        if not query:
+            return jsonify({'error': 'Query is required', 'status': 'error'}), 400
+        
+        results = assistant.search_knowledge(query, top_k)
+        return jsonify({
+            'results': results,
+            'status': 'success'
+        })
     except Exception as e:
         return jsonify({'error': str(e), 'status': 'error'}), 500
-    '''
+
+if __name__ == '__main__':
+    app.run(debug=True)
+'''
     
     print("🔧 Flask Integration Code:")
     print("=" * 30)
