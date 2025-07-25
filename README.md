@@ -237,7 +237,7 @@ MY_LAST_NAME=Your Last Name
 
 ### Troubleshooting
 
-1. **Check Apache error logs**: `sudo tail -f /var/log/apache2/my_webpage_error.log`
+1. **Check Apache error logs**: `sudo tail -f /var/log/apache2/error.log`
 2. **Verify permissions**: `ls -la /var/www/html/my_webpage`
 3. **Test WSGI**: `python3 /var/www/html/my_webpage/wsgi.py`
 4. **Check Apache status**: `sudo systemctl status apache2`
