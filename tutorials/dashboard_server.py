@@ -49,13 +49,25 @@ def save_progress(progress_data):
 
 def calculate_progress_stats(progress_data):
     """Calculate various progress statistics."""
-    total_tutorials = len(TUTORIALS)
-    completed = len(progress_data['completed_tutorials'])
+    # Exclude meta-learning tutorials from progress count
+    excluded_tutorials = {'study-guide', 'roadmap'}
+    
+    # Count only technical tutorials
+    technical_tutorials = {k: v for k, v in TUTORIALS.items() if k not in excluded_tutorials}
+    total_tutorials = len(technical_tutorials)
+    
+    # Count completed technical tutorials only
+    completed_technical = [t for t in progress_data['completed_tutorials'] if t not in excluded_tutorials]
+    completed = len(completed_technical)
+    
     completion_rate = (completed / total_tutorials * 100) if total_tutorials > 0 else 0
     
-    # Calculate estimated total time
+    # Calculate estimated total time (excluding meta-learning tutorials)
     total_estimated_minutes = 0
-    for tutorial in TUTORIALS.values():
+    for tutorial_id, tutorial in TUTORIALS.items():
+        if tutorial_id in excluded_tutorials:
+            continue  # Skip meta-learning tutorials
+            
         duration = tutorial['duration']
         # Extract time from duration string, handling ranges (e.g., "2-3 hours" -> 2, "45-60 minutes" -> 45)
         if 'hour' in duration:
