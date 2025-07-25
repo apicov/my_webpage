@@ -72,7 +72,7 @@ def chat():
 
 @app.route('/api/user-info')
 def user_info():
-    """API endpoint to get user information for React frontend"""
+    """API endpoint to get user information for React frontend """
     return jsonify(PERSONAL_INFO)
 
 if __name__ == '__main__':
