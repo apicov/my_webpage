@@ -329,6 +329,76 @@
             box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
         }
 
+        /* Individual tutorial progress */
+        .tutorial-progress {
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .tutorial-progress-text {
+            color: #2c3e50;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tutorial-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tutorial-progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #3498db, #2ecc71);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .tutorial-progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .tutorial-progress.completed {
+            background: rgba(39, 174, 96, 0.1);
+            border-left-color: #27ae60;
+        }
+
+        .tutorial-progress.completed .tutorial-progress-text {
+            color: #27ae60;
+        }
+
+        .tutorial-progress.not-started {
+            background: rgba(149, 165, 166, 0.1);
+            border-left-color: #95a5a6;
+        }
+
+        .tutorial-progress.not-started .tutorial-progress-text {
+            color: #7f8c8d;
+        }
+
         @media (max-width: 768px) {
             .tutorials-grid {
                 grid-template-columns: 1fr;
@@ -512,7 +582,7 @@
             const card = document.querySelector(`a[href*="/tutorial/${tutorialId}"]`)?.closest('.tutorial-card');
             if (card) {
                 // Remove existing progress indicators
-                card.classList.remove('tutorial-completed', 'tutorial-current');
+                card.classList.remove('tutorial-completed', 'tutorial-current', 'not-started');
                 
                 // Remove existing progress display
                 const existingProgress = card.querySelector('.tutorial-progress');
@@ -526,12 +596,24 @@
                     // Add progress display to card
                     const progressDiv = document.createElement('div');
                     progressDiv.className = 'tutorial-progress';
+                    
+                    // Set status class
+                    if (percentage === 100) {
+                        progressDiv.classList.add('completed');
+                        card.classList.add('tutorial-completed');
+                    } else if (percentage > 0) {
+                        card.classList.add('tutorial-current');
+                    } else {
+                        progressDiv.classList.add('not-started');
+                    }
+                    
                     progressDiv.innerHTML = `
-                        <div style="margin-bottom: 10px; color: #7f8c8d; font-size: 0.9rem;">
-                            Progress: ${completed}/${total} sections (${percentage}%)
+                        <div class="tutorial-progress-text">
+                            <span>Progress: ${completed}/${total} sections</span>
+                            <span>${percentage}%</span>
                         </div>
-                        <div style="width: 100%; height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
-                            <div style="height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); width: ${percentage}%; transition: width 0.3s ease;"></div>
+                        <div class="tutorial-progress-bar">
+                            <div class="tutorial-progress-fill" style="width: ${percentage}%;"></div>
                         </div>
                     `;
                     
@@ -540,12 +622,23 @@
                     if (actions) {
                         actions.parentNode.insertBefore(progressDiv, actions);
                     }
+                } else {
+                    // No sections detected yet
+                    const progressDiv = document.createElement('div');
+                    progressDiv.className = 'tutorial-progress not-started';
+                    progressDiv.innerHTML = `
+                        <div class="tutorial-progress-text">
+                            <span>Not started yet</span>
+                            <span>0%</span>
+                        </div>
+                        <div class="tutorial-progress-bar">
+                            <div class="tutorial-progress-fill" style="width: 0%;"></div>
+                        </div>
+                    `;
                     
-                    // Mark as completed if 100%
-                    if (percentage === 100) {
-                        card.classList.add('tutorial-completed');
-                    } else if (percentage > 0) {
-                        card.classList.add('tutorial-current');
+                    const actions = card.querySelector('.tutorial-actions');
+                    if (actions) {
+                        actions.parentNode.insertBefore(progressDiv, actions);
                     }
                 }
             }
