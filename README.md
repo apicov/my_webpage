@@ -81,12 +81,163 @@ npm start
 - **SkillsSection** - Technical skills showcase
 - **ExperienceSection** - Professional experience timeline
 
-## 🚀 Deployment
+## 🚀 Apache Deployment
 
-The application is configured for deployment with:
-- `wsgi.py` for production WSGI servers
-- React build process for static file generation
-- Environment variable support via `.env`
+### Step 1: Prepare the Application
+
+```bash
+# Build React for production
+cd frontend
+npm run build
+
+# This creates a 'build' folder with optimized static files
+```
+
+### Step 2: Install Apache & mod_wsgi
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install apache2 libapache2-mod-wsgi-py3
+
+# Enable mod_wsgi
+sudo a2enmod wsgi
+sudo a2enmod rewrite
+```
+
+### Step 3: Deploy to Apache Directory
+
+```bash
+# Copy your project to Apache directory
+sudo cp -r /path/to/my_webpage /var/www/html/
+
+# Set permissions
+sudo chown -R www-data:www-data /var/www/html/my_webpage
+sudo chmod -R 755 /var/www/html/my_webpage
+```
+
+### Step 4: Update Frontend API URLs
+
+Update `frontend/src/services/api.js` for production:
+
+```javascript
+// Replace localhost with your domain
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://yourdomain.com/api'  // Your actual domain
+  : 'http://localhost:5000/api';
+```
+
+Rebuild frontend after changes:
+```bash
+cd frontend && npm run build
+```
+
+### Step 5: Create Apache Virtual Host
+
+Create `/etc/apache2/sites-available/my_webpage.conf`:
+
+```apache
+<VirtualHost *:80>
+    ServerName yourdomain.com
+    DocumentRoot /var/www/html/my_webpage/frontend/build
+    
+    # Serve React app
+    <Directory /var/www/html/my_webpage/frontend/build>
+        Options -Indexes
+        AllowOverride All
+        Require all granted
+        
+        # React Router support
+        RewriteEngine On
+        RewriteBase /
+        RewriteRule ^index\.html$ - [L]
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule . /index.html [L]
+    </Directory>
+    
+    # Flask API endpoint
+    WSGIDaemonProcess mywebapp python-path=/var/www/html/my_webpage
+    WSGIProcessGroup mywebapp
+    WSGIScriptAlias /api /var/www/html/my_webpage/wsgi.py
+    
+    <Directory /var/www/html/my_webpage>
+        WSGIApplicationGroup %{GLOBAL}
+        Require all granted
+    </Directory>
+    
+    # Logs
+    ErrorLog ${APACHE_LOG_DIR}/my_webpage_error.log
+    CustomLog ${APACHE_LOG_DIR}/my_webpage_access.log combined
+</VirtualHost>
+```
+
+### Step 6: Update WSGI Configuration
+
+Your `wsgi.py` is already configured, but ensure it's production-ready:
+
+```python
+#!/usr/bin/python3
+import sys
+import os
+
+# Add your project directory to Python path
+sys.path.insert(0, "/var/www/html/my_webpage/")
+
+# Set environment variables
+os.environ['FLASK_ENV'] = 'production'
+
+from app import app as application
+
+if __name__ == "__main__":
+    application.run()
+```
+
+### Step 7: Enable Site & Restart Apache
+
+```bash
+# Enable the site
+sudo a2ensite my_webpage.conf
+
+# Disable default site (optional)
+sudo a2dissite 000-default.conf
+
+# Test Apache configuration
+sudo apache2ctl configtest
+
+# Restart Apache
+sudo systemctl restart apache2
+```
+
+### Step 8: SSL Certificate (Recommended)
+
+```bash
+# Install certbot
+sudo apt install certbot python3-certbot-apache
+
+# Get SSL certificate
+sudo certbot --apache -d yourdomain.com
+
+# Auto-renewal
+sudo crontab -e
+# Add: 0 12 * * * /usr/bin/certbot renew --quiet
+```
+
+### Production Environment Variables
+
+Create `/var/www/html/my_webpage/.env`:
+```
+FLASK_ENV=production
+MY_NAME=Your Name
+MY_LAST_NAME=Your Last Name
+```
+
+### Troubleshooting
+
+1. **Check Apache error logs**: `sudo tail -f /var/log/apache2/my_webpage_error.log`
+2. **Verify permissions**: `ls -la /var/www/html/my_webpage`
+3. **Test WSGI**: `python3 /var/www/html/my_webpage/wsgi.py`
+4. **Check Apache status**: `sudo systemctl status apache2`
 
 ## 📝 Configuration
 
