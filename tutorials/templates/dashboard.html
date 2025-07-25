@@ -186,6 +186,23 @@
             color: #8e24aa;
         }
 
+        .level-resource {
+            background: #f5f5f5;
+            color: #616161;
+        }
+
+        /* Resource card styling */
+        .resource-card {
+            border: 2px solid #ecf0f1;
+            background: rgba(255, 255, 255, 0.95);
+            opacity: 0.9;
+        }
+
+        .resource-card:hover {
+            opacity: 1;
+            border-color: #bdc3c7;
+        }
+
         .duration {
             color: #7f8c8d;
             font-size: 0.9rem;
@@ -499,23 +516,23 @@
         </section>
 
         <!-- Learning Resources Section -->
-        <section class="resources-section">
-            <div style="text-align: center; margin: 40px 0 30px 0;">
-                <h2 style="color: #2c3e50; font-size: 2rem; margin-bottom: 10px;">
-                    <i class="fas fa-graduation-cap" style="margin-right: 10px; color: #667eea;"></i>
+        <section class="resources-section" style="margin-top: 50px; padding-top: 30px; border-top: 1px solid #ecf0f1;">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h2 style="color: #2c3e50; font-size: 1.8rem; margin-bottom: 10px; font-weight: 600;">
+                    <i class="fas fa-graduation-cap" style="margin-right: 12px; color: #667eea;"></i>
                     Learning Resources
                 </h2>
-                <p style="color: #7f8c8d; font-size: 1.1rem;">
+                <p style="color: #7f8c8d; font-size: 1rem; margin: 0;">
                     Essential guides for maximizing your learning experience
-                    <br><small style="color: #95a5a6;">(These don't count toward completion progress)</small>
+                    <br><small style="color: #95a5a6; font-size: 0.9rem;">(These don't count toward completion progress)</small>
                 </p>
             </div>
             
-            <div class="tutorials-grid" style="max-width: 800px; margin: 0 auto;">
+            <div class="tutorials-grid">
                 {% for tutorial_id, tutorial in meta_tutorials.items() %}
-                <div class="tutorial-card" style="border: 2px dashed #bdc3c7; background: rgba(255, 255, 255, 0.8);">
+                <div class="tutorial-card resource-card">
                     <div class="tutorial-header">
-                        <div class="tutorial-icon">
+                        <div class="tutorial-icon" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d);">
                             {% if tutorial.level == 'Meta-Learning' %}
                                 <i class="fas fa-graduation-cap"></i>
                             {% elif tutorial.level == 'Planning' %}
@@ -528,7 +545,7 @@
                     <p class="tutorial-description">{{ tutorial.description }}</p>
                     
                     <div class="tutorial-meta">
-                        <span class="level-badge" style="background: #95a5a6; color: white;">
+                        <span class="level-badge level-resource">
                             <i class="fas fa-info-circle"></i> {{ tutorial.level }}
                         </span>
                         <span class="duration">
@@ -537,7 +554,7 @@
                     </div>
                     
                     <div class="tutorial-actions">
-                        <a href="/tutorial/{{ tutorial_id }}" class="btn btn-primary">
+                        <a href="/tutorial/{{ tutorial_id }}" class="btn btn-secondary">
                             <i class="fas fa-book-open"></i> Read Guide
                         </a>
                     </div>
