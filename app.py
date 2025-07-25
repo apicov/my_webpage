@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 import time
@@ -42,10 +42,6 @@ def get_ai_response(messages):
     response = assistant.get_response(messages)
     return response
     
-@app.route('/')
-def home():
-    return render_template('homepage.html', info=PERSONAL_INFO)
-
 @app.route('/api/chat', methods=['POST'])
 def chat():
     try:

@@ -28,7 +28,7 @@ function HeroSection({ userInfo }) {
               {userInfo?.bio || 'Passionate about technology and innovation.'}
             </p>
             <div className="flex flex-wrap gap-3 mt-2">
-              <a href="/static/cv.pdf" download style={{ display: 'inline-block' }}>
+              <a href="/cv.pdf" download style={{ display: 'inline-block' }}>
                 <button className="bg-white text-purple-600 px-4 py-3 md:px-5 md:py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-sm lg:text-base flex items-center min-h-[44px]">
                   <i className="fas fa-download mr-2"></i>Download CV
                 </button>
@@ -46,7 +46,7 @@ function HeroSection({ userInfo }) {
           <div className="w-full lg:w-1/3 flex justify-center items-center mt-6 lg:mt-0">
             <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-56 lg:h-56 rounded-full overflow-hidden border-4 border-white shadow-2xl flex-shrink-0">
               <img 
-                src="/static/myphoto.jpg" 
+                src="/myphoto.jpg" 
                 alt={userInfo?.name || 'Profile'} 
                 className="w-full h-full object-cover"
                 onError={(e) => {
