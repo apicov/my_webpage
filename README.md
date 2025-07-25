@@ -137,19 +137,21 @@ npm run build
 
 ### Step 5: Create Apache Virtual Host
 
-Create `/etc/apache2/sites-available/my_webpage.conf`:
+Create `/etc/apache2/sites-available/YOUR_DOMAIN.conf`:
 
 ```apache
-<VirtualHost *:80>
-    ServerName yourdomain.com
-    DocumentRoot /var/www/html/my_webpage/frontend/build
-    
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+    ServerName YOUR_DOMAIN
+    ServerAlias www.YOUR_DOMAIN
+    DocumentRoot /var/www/YOUR_DOMAIN/frontend/build
+
     # Serve React app
-    <Directory /var/www/html/my_webpage/frontend/build>
+    <Directory /var/www/YOUR_DOMAIN/frontend/build>
         Options -Indexes
         AllowOverride All
         Require all granted
-        
+
         # React Router support
         RewriteEngine On
         RewriteBase /
@@ -158,22 +160,32 @@ Create `/etc/apache2/sites-available/my_webpage.conf`:
         RewriteCond %{REQUEST_FILENAME} !-d
         RewriteRule . /index.html [L]
     </Directory>
-    
+
     # Flask API endpoint
-    WSGIDaemonProcess mywebapp python-path=/var/www/html/my_webpage
-    WSGIProcessGroup mywebapp
-    WSGIScriptAlias /api /var/www/html/my_webpage/wsgi.py
-    
-    <Directory /var/www/html/my_webpage>
+    WSGIDaemonProcess YOUR_DOMAIN python-home=/path/to/your/python/env python-path=/path/to/your/site-packages
+    WSGIProcessGroup YOUR_DOMAIN
+    WSGIScriptAlias /api /var/www/YOUR_DOMAIN/wsgi.py
+
+    <Directory /var/www/YOUR_DOMAIN>
         WSGIApplicationGroup %{GLOBAL}
         Require all granted
     </Directory>
-    
-    # Logs
-    ErrorLog ${APACHE_LOG_DIR}/my_webpage_error.log
-    CustomLog ${APACHE_LOG_DIR}/my_webpage_access.log combined
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+Include /etc/letsencrypt/options-ssl-apache.conf
+SSLCertificateFile /etc/letsencrypt/live/YOUR_DOMAIN/fullchain.pem
+SSLCertificateKeyFile /etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem
 </VirtualHost>
+</IfModule>
 ```
+
+**Key Configuration Notes:**
+- Replace `YOUR_DOMAIN` with your actual domain name
+- Replace `/path/to/your/python/env` with your Python environment path (e.g., `/home/user/miniconda3/envs/myenv`)
+- Replace `/path/to/your/site-packages` with your site-packages path (e.g., `/home/user/miniconda3/envs/myenv/lib/python3.10/site-packages`)
+- This configuration includes SSL support via Let's Encrypt
 
 ### Step 6: Update WSGI Configuration
 
