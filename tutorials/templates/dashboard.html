@@ -279,6 +279,56 @@
             margin-bottom: 10px;
         }
 
+        /* Progress Bar Styles */
+        .progress-bar-section {
+            margin-top: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 5px;
+            transition: width 0.5s ease-in-out;
+        }
+
+        .progress-text {
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        /* Tutorial completion status */
+        .tutorial-completed {
+            position: relative;
+        }
+
+        .tutorial-completed::after {
+            content: '✅';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.5rem;
+        }
+
+        .tutorial-current {
+            border: 3px solid #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
         @media (max-width: 768px) {
             .tutorials-grid {
                 grid-template-columns: 1fr;
@@ -305,14 +355,14 @@
 
         <section class="progress-overview">
             <div class="progress-card">
-                <div class="icon">🎯</div>
-                <h3>Integrated Learning</h3>
-                <p>All tutorials enhance<br>YOUR actual platform</p>
+                <div class="icon">📊</div>
+                <h3>Progress</h3>
+                <p><strong><span id="completedCount">0</span>/<span id="totalCount">0</span></strong><br><span id="completionRate">0</span>% Complete</p>
             </div>
             <div class="progress-card">
-                <div class="icon">🚀</div>
-                <h3>Real Portfolio</h3>
-                <p>Build showcase project<br>while learning</p>
+                <div class="icon">⏱️</div>
+                <h3>Sections</h3>
+                <p><strong><span id="totalSections">0</span> sections</strong><br>across all tutorials</p>
             </div>
             <div class="progress-card">
                 <div class="icon">🔗</div>
@@ -320,10 +370,22 @@
                 <p>Each tutorial builds<br>on the previous</p>
             </div>
             <div class="progress-card">
-                <div class="icon">💼</div>
-                <h3>Professional Ready</h3>
-                <p>Production-grade<br>AI platform</p>
+                <div class="icon">🎯</div>
+                <h3>Next Goal</h3>
+                <p><span id="remainingCount">0</span> tutorials<br>remaining</p>
             </div>
+        </section>
+
+        <!-- Progress Bar -->
+        <section class="progress-bar-section">
+            <h3 style="margin-bottom: 15px; color: #2c3e50;">
+                <i class="fas fa-chart-line"></i> Overall Learning Progress
+            </h3>
+            <div class="progress-container">
+                <div class="progress-bar" id="overallProgressBar" style="width: 0%"></div>
+            </div>
+            <p class="progress-text" id="progressText">0% of your AI learning journey complete</p>
+            <p style="margin-top: 10px; color: #7f8c8d; font-size: 0.9rem;">Progress is calculated based on completed sections in each tutorial</p>
         </section>
 
         <section class="integration-info">
@@ -391,5 +453,183 @@
             <p>Every tutorial enhances the same project - your actual working platform!</p>
         </footer>
     </div>
+
+    <script>
+        // Available tutorials (from template)
+        const availableTutorials = [
+            {% for tutorial_id, tutorial in tutorials.items() %}'{{ tutorial_id }}'{% if not loop.last %},{% endif %}{% endfor %}
+        ];
+
+        // Load progress from localStorage
+        function loadDashboardProgress() {
+            const overallProgress = JSON.parse(localStorage.getItem('overallProgress') || '{}');
+            const tutorialProgress = JSON.parse(localStorage.getItem('tutorialProgress') || '{}');
+            
+            let totalCompleted = 0;
+            let totalSections = 0;
+            let completedSections = 0;
+            let completedTutorials = [];
+            
+            // Calculate progress for each tutorial
+            availableTutorials.forEach(tutorialId => {
+                const progress = overallProgress[tutorialId];
+                const sections = tutorialProgress[tutorialId] || {};
+                
+                // Count sections for this tutorial
+                const sectionCount = Object.keys(sections).length;
+                const sectionCompleted = Object.values(sections).filter(Boolean).length;
+                
+                totalSections += sectionCount;
+                completedSections += sectionCompleted;
+                
+                // Tutorial is completed if all sections are done
+                if (sectionCount > 0 && sectionCompleted === sectionCount) {
+                    completedTutorials.push(tutorialId);
+                    totalCompleted++;
+                }
+                
+                // Update tutorial card visual state
+                updateTutorialCard(tutorialId, sectionCompleted, sectionCount);
+            });
+            
+            const totalTutorials = availableTutorials.length;
+            const overallPercentage = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
+            const tutorialPercentage = totalTutorials > 0 ? Math.round((totalCompleted / totalTutorials) * 100) : 0;
+            
+            // Update dashboard display
+            document.getElementById('completedCount').textContent = totalCompleted;
+            document.getElementById('totalCount').textContent = totalTutorials;
+            document.getElementById('completionRate').textContent = tutorialPercentage;
+            document.getElementById('totalSections').textContent = totalSections;
+            document.getElementById('remainingCount').textContent = totalTutorials - totalCompleted;
+            
+            // Update progress bar (use section-based progress for more granular tracking)
+            document.getElementById('overallProgressBar').style.width = `${overallPercentage}%`;
+            document.getElementById('progressText').textContent = `${overallPercentage}% of your AI learning journey complete (${completedSections}/${totalSections} sections)`;
+        }
+
+        function updateTutorialCard(tutorialId, completed, total) {
+            const card = document.querySelector(`a[href*="/tutorial/${tutorialId}"]`)?.closest('.tutorial-card');
+            if (card) {
+                // Remove existing progress indicators
+                card.classList.remove('tutorial-completed', 'tutorial-current');
+                
+                // Remove existing progress display
+                const existingProgress = card.querySelector('.tutorial-progress');
+                if (existingProgress) {
+                    existingProgress.remove();
+                }
+                
+                if (total > 0) {
+                    const percentage = Math.round((completed / total) * 100);
+                    
+                    // Add progress display to card
+                    const progressDiv = document.createElement('div');
+                    progressDiv.className = 'tutorial-progress';
+                    progressDiv.innerHTML = `
+                        <div style="margin-bottom: 10px; color: #7f8c8d; font-size: 0.9rem;">
+                            Progress: ${completed}/${total} sections (${percentage}%)
+                        </div>
+                        <div style="width: 100%; height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
+                            <div style="height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); width: ${percentage}%; transition: width 0.3s ease;"></div>
+                        </div>
+                    `;
+                    
+                    // Insert before actions
+                    const actions = card.querySelector('.tutorial-actions');
+                    if (actions) {
+                        actions.parentNode.insertBefore(progressDiv, actions);
+                    }
+                    
+                    // Mark as completed if 100%
+                    if (percentage === 100) {
+                        card.classList.add('tutorial-completed');
+                    } else if (percentage > 0) {
+                        card.classList.add('tutorial-current');
+                    }
+                }
+            }
+        }
+
+        // Show achievement notifications
+        function showAchievement(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+                z-index: 1000;
+                font-weight: 600;
+                transform: translateX(400px);
+                transition: transform 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Slide in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // Check for achievements
+        function checkAchievements() {
+            const overallProgress = JSON.parse(localStorage.getItem('overallProgress') || '{}');
+            const achievementsShown = JSON.parse(localStorage.getItem('achievementsShown') || '[]');
+            
+            const completedTutorials = availableTutorials.filter(id => {
+                const progress = overallProgress[id];
+                return progress && progress.percentage === 100;
+            });
+            
+            // First tutorial completion
+            if (completedTutorials.length >= 1 && !achievementsShown.includes('first_tutorial')) {
+                showAchievement('🎉 Achievement Unlocked: First Tutorial Complete!');
+                achievementsShown.push('first_tutorial');
+            }
+            
+            // Three tutorials completed
+            if (completedTutorials.length >= 3 && !achievementsShown.includes('third_tutorial')) {
+                showAchievement('🔥 Achievement Unlocked: Learning Streak!');
+                achievementsShown.push('third_tutorial');
+            }
+            
+            // All tutorials completed
+            if (completedTutorials.length === availableTutorials.length && !achievementsShown.includes('all_complete')) {
+                showAchievement('🏆 Achievement Unlocked: AI Master - All Tutorials Complete!');
+                achievementsShown.push('all_complete');
+            }
+            
+            localStorage.setItem('achievementsShown', JSON.stringify(achievementsShown));
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardProgress();
+            checkAchievements();
+            
+            // Refresh progress every 30 seconds in case user has tutorials open in other tabs
+            setInterval(loadDashboardProgress, 30000);
+        });
+
+        // Listen for storage changes (when progress is updated in other tabs)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'overallProgress' || e.key === 'tutorialProgress') {
+                loadDashboardProgress();
+                checkAchievements();
+            }
+        });
+    </script>
 </body>
 </html> 

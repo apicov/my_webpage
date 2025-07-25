@@ -11,8 +11,68 @@ from markupsafe import Markup
 import re
 import os
 from pathlib import Path
+import json
+import time
 
 app = Flask(__name__, template_folder='templates')
+
+# Progress tracking file
+PROGRESS_FILE = 'learning_progress.json'
+
+def load_progress():
+    """Load user progress from JSON file."""
+    if os.path.exists(PROGRESS_FILE):
+        try:
+            with open(PROGRESS_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return {
+        'completed_tutorials': [],
+        'current_tutorial': None,
+        'reading_time': {},
+        'notes': {},
+        'achievements': [],
+        'streak_days': 0,
+        'last_activity': None,
+        'total_time_spent': 0
+    }
+
+def save_progress(progress_data):
+    """Save user progress to JSON file."""
+    try:
+        with open(PROGRESS_FILE, 'w') as f:
+            json.dump(progress_data, f, indent=2)
+        return True
+    except:
+        return False
+
+def calculate_progress_stats(progress_data):
+    """Calculate various progress statistics."""
+    total_tutorials = len(TUTORIALS)
+    completed = len(progress_data['completed_tutorials'])
+    completion_rate = (completed / total_tutorials * 100) if total_tutorials > 0 else 0
+    
+    # Calculate estimated total time
+    total_estimated_minutes = 0
+    for tutorial in TUTORIALS.values():
+        duration = tutorial['duration']
+        # Extract hours from duration string (e.g., "2-3 hours" -> 2.5)
+        if 'hour' in duration:
+            hours = duration.split()[0].split('-')[0]
+            total_estimated_minutes += int(hours) * 60
+        elif 'minute' in duration:
+            minutes = duration.split()[0]
+            total_estimated_minutes += int(minutes)
+    
+    return {
+        'total_tutorials': total_tutorials,
+        'completed': completed,
+        'remaining': total_tutorials - completed,
+        'completion_rate': round(completion_rate, 1),
+        'total_estimated_minutes': total_estimated_minutes,
+        'time_spent_minutes': progress_data.get('total_time_spent', 0)
+    }
 
 # Tutorial configuration
 TUTORIALS = {
@@ -204,7 +264,9 @@ def fix_code_block_classes(html_content):
 @app.route('/')
 def dashboard():
     """Main tutorial dashboard with navigation"""
-    return render_template('dashboard.html', tutorials=TUTORIALS, personal_info={'name': 'Developer'})
+    progress_data = load_progress()
+    progress_stats = calculate_progress_stats(progress_data)
+    return render_template('dashboard.html', tutorials=TUTORIALS, personal_info={'name': 'Developer'}, progress_stats=progress_stats)
 
 @app.route('/tutorial/<tutorial_id>')
 def tutorial_viewer(tutorial_id):
@@ -238,6 +300,96 @@ def tutorial_viewer(tutorial_id):
 def api_tutorials():
     """API endpoint to get tutorials list"""
     return jsonify(TUTORIALS)
+
+@app.route('/api/progress', methods=['GET'])
+def get_progress():
+    """Get current learning progress"""
+    progress_data = load_progress()
+    progress_stats = calculate_progress_stats(progress_data)
+    return jsonify({
+        'progress': progress_data,
+        'stats': progress_stats
+    })
+
+@app.route('/api/progress/complete', methods=['POST'])
+def mark_tutorial_complete():
+    """Mark a tutorial as completed"""
+    data = request.get_json()
+    tutorial_id = data.get('tutorial_id')
+    time_spent = data.get('time_spent', 0)  # in minutes
+    
+    if tutorial_id not in TUTORIALS:
+        return jsonify({'error': 'Invalid tutorial ID'}), 400
+    
+    progress_data = load_progress()
+    
+    # Add to completed if not already there
+    if tutorial_id not in progress_data['completed_tutorials']:
+        progress_data['completed_tutorials'].append(tutorial_id)
+    
+    # Update reading time
+    progress_data['reading_time'][tutorial_id] = time_spent
+    progress_data['total_time_spent'] += time_spent
+    progress_data['last_activity'] = time.time()
+    
+    # Check for achievements
+    completed_count = len(progress_data['completed_tutorials'])
+    new_achievements = []
+    
+    if completed_count == 1 and 'first_tutorial' not in progress_data['achievements']:
+        new_achievements.append('first_tutorial')
+    elif completed_count == 3 and 'third_tutorial' not in progress_data['achievements']:
+        new_achievements.append('third_tutorial')
+    elif completed_count == len(TUTORIALS) and 'all_complete' not in progress_data['achievements']:
+        new_achievements.append('all_complete')
+    
+    progress_data['achievements'].extend(new_achievements)
+    
+    if save_progress(progress_data):
+        return jsonify({
+            'success': True,
+            'new_achievements': new_achievements,
+            'stats': calculate_progress_stats(progress_data)
+        })
+    else:
+        return jsonify({'error': 'Failed to save progress'}), 500
+
+@app.route('/api/progress/start', methods=['POST'])
+def start_tutorial():
+    """Mark tutorial as started/currently reading"""
+    data = request.get_json()
+    tutorial_id = data.get('tutorial_id')
+    
+    if tutorial_id not in TUTORIALS:
+        return jsonify({'error': 'Invalid tutorial ID'}), 400
+    
+    progress_data = load_progress()
+    progress_data['current_tutorial'] = tutorial_id
+    progress_data['last_activity'] = time.time()
+    
+    if save_progress(progress_data):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Failed to save progress'}), 500
+
+@app.route('/api/progress/note', methods=['POST'])
+def save_note():
+    """Save a note for a tutorial"""
+    data = request.get_json()
+    tutorial_id = data.get('tutorial_id')
+    note = data.get('note', '')
+    
+    if tutorial_id not in TUTORIALS:
+        return jsonify({'error': 'Invalid tutorial ID'}), 400
+    
+    progress_data = load_progress()
+    progress_data['notes'][tutorial_id] = note
+    progress_data['last_activity'] = time.time()
+    
+    if save_progress(progress_data):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Failed to save progress'}), 500
 
 if __name__ == '__main__':
     print("🚀 Starting Tutorial Dashboard Server...")
