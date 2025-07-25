@@ -57,12 +57,12 @@ def calculate_progress_stats(progress_data):
     total_estimated_minutes = 0
     for tutorial in TUTORIALS.values():
         duration = tutorial['duration']
-        # Extract hours from duration string (e.g., "2-3 hours" -> 2.5)
+        # Extract time from duration string, handling ranges (e.g., "2-3 hours" -> 2, "45-60 minutes" -> 45)
         if 'hour' in duration:
-            hours = duration.split()[0].split('-')[0]
+            hours = duration.split()[0].split('-')[0]  # Take first number from range
             total_estimated_minutes += int(hours) * 60
         elif 'minute' in duration:
-            minutes = duration.split()[0]
+            minutes = duration.split()[0].split('-')[0]  # Take first number from range
             total_estimated_minutes += int(minutes)
     
     return {
