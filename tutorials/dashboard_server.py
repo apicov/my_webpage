@@ -86,79 +86,68 @@ def calculate_progress_stats(progress_data):
         'time_spent_minutes': progress_data.get('total_time_spent', 0)
     }
 
-# Tutorial configuration
-TUTORIALS = {
-    'codebase-overview': {
-        'title': 'Understanding Your Codebase',
-        'file': 'CODEBASE_OVERVIEW.md',
-        'description': 'Complete architecture guide to YOUR React + Flask system',
-        'level': 'Foundation',
-        'duration': '45-60 minutes'
-    },
-    'prerequisites': {
-        'title': 'Prerequisites: Modern JavaScript',
-        'file': 'PREREQUISITES_TUTORIAL.md',
-        'description': 'Master modern JavaScript through YOUR actual code',
-        'level': 'Foundation',
-        'duration': '2-3 hours'
-    },
-    'react': {
-        'title': 'React: Modern Development',
-        'file': 'REACT_TUTORIAL.md', 
-        'description': 'Transform YOUR ChatInterface.js with React 18 + TypeScript',
-        'level': 'Foundation',
-        'duration': '4-6 hours'
-    },
-    'llm-fundamentals': {
-        'title': 'LLM Fundamentals + RAG',
-        'file': 'LLM_FUNDAMENTALS_KERAS3_TUTORIAL.md',
-        'description': 'Enhance YOUR Assistant with advanced AI capabilities',
-        'level': 'Intermediate',
-        'duration': '6-8 hours'
-    },
-    'llm-agents': {
-        'title': 'LLM Agents + Multi-Agent Systems',
-        'file': 'LLM_AGENTS_KERAS3_TUTORIAL.md',
-        'description': 'Add autonomous capabilities to YOUR Assistant',
-        'level': 'Advanced',
-        'duration': '6-8 hours'
-    },
-    'computer-vision': {
-        'title': 'Computer Vision + IoT',
-        'file': 'IOT_WEBCAM_TUTORIAL.md',
-        'description': 'Add camera controls and vision AI to YOUR chat',
-        'level': 'Intermediate',
-        'duration': '5-7 hours'
-    },
-    'tinyml': {
-        'title': 'TinyML + Edge AI',
-        'file': 'TINYML_TUTORIAL.md',
-        'description': 'Control edge AI devices through YOUR platform',
-        'level': 'Advanced',
-        'duration': '5-7 hours'
-    },
-    'tinyml-advanced': {
-        'title': 'Advanced TinyML Optimization',
-        'file': 'TINYML_ADVANCED_TUTORIAL.md',
-        'description': 'Enterprise-grade optimization for YOUR platform',
-        'level': 'Expert',
-        'duration': '4-6 hours'
-    },
-    'study-guide': {
-        'title': 'How to Study These Tutorials',
-        'file': 'HOW_TO_STUDY_TUTORIALS.md',
-        'description': 'Integrated learning strategy for maximum effectiveness',
-        'level': 'Meta-Learning',
-        'duration': '1 hour'
-    },
-    'roadmap': {
-        'title': 'Project Roadmap',
-        'file': 'PROJECT_ROADMAP.md',
-        'description': 'Complete platform evolution strategy',
-        'level': 'Planning',
-        'duration': '30 minutes'
-    }
-}
+def load_tutorials_from_folder(folder_path='documents'):
+    """Automatically load all markdown files from the documents folder"""
+    tutorials = {}
+    docs_path = Path(__file__).parent / folder_path
+    
+    # Ensure the documents folder exists
+    docs_path.mkdir(exist_ok=True)
+    
+    # Load all markdown files
+    for file_path in docs_path.glob('*.md'):
+        # Skip certain files if needed
+        if file_path.name.startswith('.'):
+            continue
+            
+        # Generate ID from filename (remove .md extension and convert to lowercase)
+        tutorial_id = file_path.stem.lower().replace('_', '-').replace(' ', '-')
+        
+        # Create readable title from filename
+        title = file_path.stem.replace('_', ' ').replace('-', ' ')
+        # Capitalize each word
+        title = ' '.join(word.capitalize() for word in title.split())
+        
+        # Try to extract metadata from the first few lines of the file
+        description = f'Tutorial: {title}'
+        level = 'Foundation'
+        duration = '1-2 hours'
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                # Read first 10 lines to look for metadata
+                lines = [next(f, '') for _ in range(10)]
+                content_preview = ''.join(lines[:5])
+                
+                # Simple metadata extraction (could be enhanced)
+                for line in lines:
+                    if 'description:' in line.lower():
+                        description = line.split(':', 1)[1].strip()
+                    elif 'level:' in line.lower():
+                        level = line.split(':', 1)[1].strip()
+                    elif 'duration:' in line.lower():
+                        duration = line.split(':', 1)[1].strip()
+                    elif line.strip() and not line.startswith('#') and not line.startswith('---'):
+                        # Use first non-header line as description if no metadata
+                        if description == f'Tutorial: {title}':
+                            description = line.strip()[:100] + '...' if len(line.strip()) > 100 else line.strip()
+                        break
+        except:
+            pass
+        
+        tutorials[tutorial_id] = {
+            'title': title,
+            'file': file_path.name,
+            'description': description,
+            'level': level,
+            'duration': duration,
+            'folder': folder_path  # Track which folder it came from
+        }
+    
+    return tutorials
+
+# Tutorial configuration - dynamically loaded
+TUTORIALS = load_tutorials_from_folder()
 
 def preprocess_code_blocks(content):
     """Preprocess markdown content to ensure proper language classes for Prism.js"""
@@ -304,7 +293,9 @@ def tutorial_viewer(tutorial_id):
         return "Tutorial not found", 404
     
     tutorial_info = TUTORIALS[tutorial_id]
-    tutorial_path = f"{tutorial_info['file']}"
+    # Get the folder path from tutorial info, default to 'documents'
+    folder = tutorial_info.get('folder', 'documents')
+    tutorial_path = Path(__file__).parent / folder / tutorial_info['file']
     
     try:
         with open(tutorial_path, 'r', encoding='utf-8') as f:
