@@ -617,16 +617,19 @@
             const overallPercentage = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
             const tutorialPercentage = totalTutorials > 0 ? Math.round((totalCompleted / totalTutorials) * 100) : 0;
             
-            // Update dashboard display
-            document.getElementById('completedCount').textContent = totalCompleted;
-            document.getElementById('totalCount').textContent = totalTutorials;
-            document.getElementById('completionRate').textContent = tutorialPercentage;
-            document.getElementById('totalSections').textContent = totalSections;
-            document.getElementById('remainingCount').textContent = totalTutorials - totalCompleted;
-            
             // Update progress bar (use section-based progress for more granular tracking)
-            document.getElementById('overallProgressBar').style.width = `${overallPercentage}%`;
-            document.getElementById('progressText').textContent = `${overallPercentage}% of your AI learning journey complete (${completedSections}/${totalSections} sections)`;
+            const progressBar = document.getElementById('overallProgressBar');
+            const progressText = document.getElementById('progressText');
+            
+            if (progressBar) {
+                progressBar.style.width = `${overallPercentage}%`;
+            }
+            
+            if (progressText) {
+                progressText.textContent = `${overallPercentage}% of your AI learning journey complete (${completedSections}/${totalSections} sections)`;
+            }
+            
+            console.log(`Progress updated: ${overallPercentage}% (${completedSections}/${totalSections} sections)`); // Debug
         }
 
         function updateTutorialCard(tutorialId, completed, total) {
