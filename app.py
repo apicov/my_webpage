@@ -43,6 +43,7 @@ def get_ai_response(messages):
     return response
     
 @app.route('/chat', methods=['POST'])
+@app.route('/api/chat', methods=['POST'])
 def chat():
     try:
         data = request.get_json()
@@ -71,6 +72,7 @@ def chat():
         }), 500
 
 @app.route('/user-info')
+@app.route('/api/user-info')
 def user_info():
     """API endpoint to get user information for React frontend """
     return jsonify(PERSONAL_INFO)

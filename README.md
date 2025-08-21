@@ -13,8 +13,10 @@ A modern web application featuring an AI-powered chat assistant built with React
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **React 18** - Modern component-based UI library
-- **React Router** - Client-side routing
+- **React 19** - Latest React with improved performance
+- **TypeScript 5.7** - Type-safe JavaScript
+- **Vite 6.0** - Lightning-fast build tool
+- **React Router v7** - Modern routing solution
 - **Tailwind CSS** - Utility-first CSS framework
 - **Chart.js** - Data visualization capabilities
 
@@ -28,12 +30,15 @@ A modern web application featuring an AI-powered chat assistant built with React
 ```
 my_webpage/
 ├── app.py                 # Flask API backend
-├── frontend/              # React application
+├── frontend/              # React TypeScript application
 │   ├── src/
-│   │   ├── components/    # React components
-│   │   ├── pages/         # Page components
-│   │   └── services/      # API service layer
-│   └── public/            # Static assets
+│   │   ├── components/    # React components (.tsx)
+│   │   ├── pages/         # Page components (.tsx)
+│   │   ├── services/      # API service layer (.ts)
+│   │   └── types/         # TypeScript type definitions
+│   ├── index.html         # Entry HTML file
+│   ├── vite.config.ts     # Vite configuration
+│   └── tsconfig.json      # TypeScript configuration
 ├── data/                  # Personal data and content
 ├── requirements.txt       # Python dependencies
 └── wsgi.py               # Production deployment config
@@ -64,15 +69,26 @@ cd frontend
 # Install dependencies
 npm install
 
-# Start React development server
-npm start
+# Start Vite development server
+npm run dev
 ```
 *Frontend runs on http://localhost:3000*
 
+### Available Scripts
+```bash
+npm run dev        # Start development server
+npm run build      # Build for production
+npm run preview    # Preview production build
+npm run typecheck  # Run TypeScript type checking
+npm run lint       # Run ESLint
+```
+
 ## 🔗 API Endpoints
 
-- `POST /api/chat` - Send messages to AI assistant
-- `GET /api/user-info` - Retrieve user profile information
+- `POST /api/chat` or `/chat` - Send messages to AI assistant
+- `GET /api/user-info` or `/user-info` - Retrieve user profile information
+
+*Note: Flask accepts both paths for compatibility with development and production environments*
 
 ## 🌟 Key Components
 
