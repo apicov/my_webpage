@@ -23,13 +23,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
       )}
       
       <div className="p-6">
-        <div className="flex justify-between items-start mb-2">
+        <div className="mb-2">
           <h3 className="text-xl font-bold text-gray-800">{project.title}</h3>
-          {project.featured && (
-            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-              Featured
-            </span>
-          )}
         </div>
         
         <p className="text-gray-600 mb-4 line-clamp-3">
@@ -52,18 +47,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
           )}
         </div>
         
-        <div className="flex items-center justify-between">
-          <span className={`text-sm px-2 py-1 rounded ${
-            project.status === 'completed' 
-              ? 'bg-green-100 text-green-800'
-              : project.status === 'in-progress'
-              ? 'bg-yellow-100 text-yellow-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}>
-            {project.status === 'in-progress' ? 'In Progress' : 
-             project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-          </span>
-          
+        <div className="flex items-center justify-end">
           <div className="flex gap-3">
             {project.githubUrl && (
               <a 

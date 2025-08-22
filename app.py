@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import json
 import time
@@ -122,6 +122,12 @@ def get_projects():
     except Exception as e:
         print(f"Error loading projects: {e}")
         return jsonify({'error': 'Failed to load projects'}), 500
+
+@app.route('/data/<path:filename>')
+@app.route('/api/data/<path:filename>')
+def serve_data_files(filename):
+    """Serve static files from the data directory"""
+    return send_from_directory('./data', filename)
 
 @app.route('/projects/<project_id>')
 @app.route('/api/projects/<project_id>')

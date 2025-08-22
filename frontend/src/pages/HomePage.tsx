@@ -11,6 +11,28 @@ const HomePage: React.FC = () => {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNav, setShowNav] = useState(false);
+
+  // Handle scroll to show/hide navigation
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const heroHeight = window.innerHeight * 0.3; // Show nav after scrolling past 30% of viewport
+      setShowNav(scrollPosition > heroHeight);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Smooth scroll to section
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const offsetTop = element.offsetTop - 80; // Account for fixed nav
+      window.scrollTo({ top: offsetTop, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,7 +81,38 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="bg-gray-50">
-      <div className="flex flex-col lg:flex-row container mx-auto px-4 py-8 gap-8">
+      {/* Sticky Navigation */}
+      {showNav && (
+        <nav className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] bg-white border border-gray-200 rounded-full shadow-xl px-4 py-2">
+          <div className="flex gap-1 text-sm font-medium">
+            <button
+              onClick={() => scrollToSection('hero')}
+              className="px-3 py-1 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors text-gray-700"
+            >
+              About
+            </button>
+            <button
+              onClick={() => scrollToSection('skills')}
+              className="px-3 py-1 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors text-gray-700"
+            >
+              Skills
+            </button>
+            <button
+              onClick={() => scrollToSection('projects')}
+              className="px-3 py-1 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors text-gray-700"
+            >
+              Projects
+            </button>
+            <button
+              onClick={() => scrollToSection('experience')}
+              className="px-3 py-1 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors text-gray-700"
+            >
+              Experience
+            </button>
+          </div>
+        </nav>
+      )}
+      <div id="hero" className="flex flex-col lg:flex-row container mx-auto px-4 py-8 gap-8">
         {/* Left Side: Hero Section */}
         <div className="w-full lg:w-1/2 mb-8 lg:mb-0 flex items-center justify-center">
           <HeroSection userInfo={userInfo || undefined} />
@@ -72,13 +125,19 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Skills Section */}
-      <SkillsSection skills={userInfo?.skills || []} />
+      <div id="skills">
+        <SkillsSection skills={userInfo?.skills || []} />
+      </div>
       
       {/* Projects Section */}
-      <ProjectsSection projects={projects} />
+      <div id="projects">
+        <ProjectsSection projects={projects} />
+      </div>
       
       {/* Experience Section */}
-      <ExperienceSection experience={userInfo?.experience || []} />
+      <div id="experience">
+        <ExperienceSection experience={userInfo?.experience || []} />
+      </div>
       
       {/* Footer */}
       <footer className="gradient-bg text-white py-8">
