@@ -3,20 +3,27 @@ import HeroSection from '../components/HeroSection';
 import ChatInterface from '../components/ChatInterface';
 import SkillsSection from '../components/SkillsSection';
 import ExperienceSection from '../components/ExperienceSection';
-import { getUserInfo } from '../services/api';
-import { UserInfo } from '../types';
+import ProjectsSection from '../components/ProjectsSection';
+import { getUserInfo, getProjects } from '../services/api';
+import { UserInfo, Project } from '../types';
 
 const HomePage: React.FC = () => {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserInfo = async () => {
+    const fetchData = async () => {
       try {
-        const info = await getUserInfo();
+        // Fetch user info and projects in parallel
+        const [info, projectsList] = await Promise.all([
+          getUserInfo(),
+          getProjects()
+        ]);
         setUserInfo(info);
+        setProjects(projectsList);
       } catch (error) {
-        console.error('Failed to fetch user info:', error);
+        console.error('Failed to fetch data:', error);
         // Fallback to default info if API fails
         setUserInfo({
           name: 'Your Name',
@@ -32,12 +39,13 @@ const HomePage: React.FC = () => {
             }
           ]
         });
+        setProjects([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserInfo();
+    fetchData();
   }, []);
 
   if (loading) {
@@ -65,6 +73,9 @@ const HomePage: React.FC = () => {
 
       {/* Skills Section */}
       <SkillsSection skills={userInfo?.skills || []} />
+      
+      {/* Projects Section */}
+      <ProjectsSection projects={projects} />
       
       {/* Experience Section */}
       <ExperienceSection experience={userInfo?.experience || []} />

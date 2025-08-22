@@ -3,6 +3,9 @@ from flask_cors import CORS
 import json
 import time
 import os
+import glob
+import frontmatter
+from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
@@ -76,6 +79,84 @@ def chat():
 def user_info():
     """API endpoint to get user information for React frontend """
     return jsonify(PERSONAL_INFO)
+
+@app.route('/projects')
+@app.route('/api/projects')
+def get_projects():
+    """API endpoint to get all projects from markdown files"""
+    try:
+        projects = []
+        project_dir = Path('./data/projects')
+        
+        # Create directory if it doesn't exist
+        project_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Read all markdown files in the projects directory
+        for md_file in project_dir.glob('*.md'):
+            with open(md_file, 'r', encoding='utf-8') as f:
+                post = frontmatter.load(f)
+                
+                # Extract metadata and content
+                project = {
+                    'id': post.metadata.get('id', md_file.stem),
+                    'title': post.metadata.get('title', 'Untitled Project'),
+                    'description': post.metadata.get('description', ''),
+                    'technologies': post.metadata.get('technologies', '').split(', ') if isinstance(post.metadata.get('technologies'), str) else post.metadata.get('technologies', []),
+                    'status': post.metadata.get('status', 'planned'),
+                    'featured': post.metadata.get('featured', False),
+                    'githubUrl': post.metadata.get('githubUrl'),
+                    'liveUrl': post.metadata.get('liveUrl'),
+                    'demoUrl': post.metadata.get('demoUrl'),
+                    'startDate': post.metadata.get('startDate'),
+                    'endDate': post.metadata.get('endDate'),
+                    'thumbnail': post.metadata.get('thumbnail'),
+                    'content': post.content  # Full markdown content
+                }
+                projects.append(project)
+        
+        # Sort projects: featured first, then by status
+        projects.sort(key=lambda x: (not x['featured'], x['status'] != 'completed'))
+        
+        return jsonify(projects)
+    
+    except Exception as e:
+        print(f"Error loading projects: {e}")
+        return jsonify({'error': 'Failed to load projects'}), 500
+
+@app.route('/projects/<project_id>')
+@app.route('/api/projects/<project_id>')
+def get_project(project_id):
+    """API endpoint to get a single project by ID"""
+    try:
+        project_file = Path(f'./data/projects/{project_id}.md')
+        
+        if not project_file.exists():
+            return jsonify({'error': 'Project not found'}), 404
+        
+        with open(project_file, 'r', encoding='utf-8') as f:
+            post = frontmatter.load(f)
+            
+            project = {
+                'id': post.metadata.get('id', project_id),
+                'title': post.metadata.get('title', 'Untitled Project'),
+                'description': post.metadata.get('description', ''),
+                'technologies': post.metadata.get('technologies', '').split(', ') if isinstance(post.metadata.get('technologies'), str) else post.metadata.get('technologies', []),
+                'status': post.metadata.get('status', 'planned'),
+                'featured': post.metadata.get('featured', False),
+                'githubUrl': post.metadata.get('githubUrl'),
+                'liveUrl': post.metadata.get('liveUrl'),
+                'demoUrl': post.metadata.get('demoUrl'),
+                'startDate': post.metadata.get('startDate'),
+                'endDate': post.metadata.get('endDate'),
+                'thumbnail': post.metadata.get('thumbnail'),
+                'content': post.content
+            }
+            
+        return jsonify(project)
+    
+    except Exception as e:
+        print(f"Error loading project {project_id}: {e}")
+        return jsonify({'error': 'Failed to load project'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

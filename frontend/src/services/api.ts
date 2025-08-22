@@ -1,4 +1,4 @@
-import { ChatMessage, UserInfo } from '../types';
+import { ChatMessage, UserInfo, Project } from '../types';
 
 // API Configuration for different environments
 const getApiBaseUrl = (): string => {
@@ -126,6 +126,29 @@ export const getDeviceData = async (deviceId: string): Promise<DeviceData> => {
     return handleResponse<DeviceData>(response);
   } catch (error) {
     return handleNetworkError(error, 'Get device data');
+  }
+};
+
+// Projects API
+export const getProjects = async (): Promise<Project[]> => {
+  try {
+    const response = await fetch(`${API_BASE}/projects`, {
+      signal: AbortSignal.timeout(10000)
+    });
+    return handleResponse<Project[]>(response);
+  } catch (error) {
+    return handleNetworkError(error, 'Get projects');
+  }
+};
+
+export const getProject = async (id: string): Promise<Project> => {
+  try {
+    const response = await fetch(`${API_BASE}/projects/${id}`, {
+      signal: AbortSignal.timeout(10000)
+    });
+    return handleResponse<Project>(response);
+  } catch (error) {
+    return handleNetworkError(error, 'Get project');
   }
 };
 

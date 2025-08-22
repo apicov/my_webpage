@@ -31,3 +31,21 @@ export interface ApiResponse<T = any> {
   error?: string;
   success: boolean;
 }
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  longDescription?: string;
+  technologies: string[];
+  imageUrl?: string;
+  thumbnail?: string;
+  githubUrl?: string;
+  liveUrl?: string;
+  demoUrl?: string;
+  status: 'completed' | 'in-progress' | 'planned';
+  featured?: boolean;
+  startDate?: string;
+  endDate?: string;
+  content?: string;  // Markdown content
+}
