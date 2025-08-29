@@ -30,6 +30,7 @@ const MultiModalChatInterface: React.FC<MultiModalChatInterfaceProps> = ({ onAge
     type: 'welcome'
   });
   const [isDisplayExpanded, setIsDisplayExpanded] = useState(true);
+  const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -49,52 +50,28 @@ const MultiModalChatInterface: React.FC<MultiModalChatInterfaceProps> = ({ onAge
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
+  // Auto-scroll to bottom when messages change - clean and simple
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (chatMessagesRef.current) {
       chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Handle mobile keyboard behavior
+  // Detect viewport height changes (mobile keyboard)
   useEffect(() => {
-    let previousHeight = window.visualViewport?.height || window.innerHeight;
-    
-    const handleVisualViewportChange = () => {
-      if (!window.visualViewport) return;
-      
-      const currentHeight = window.visualViewport.height;
-      const isKeyboardHiding = currentHeight > previousHeight;
-      const isKeyboardShowing = currentHeight < previousHeight;
-      
-      // Only act when keyboard is hiding (viewport getting larger)
-      if (isKeyboardHiding && currentHeight > window.innerHeight * 0.8) {
-        setTimeout(() => {
-          const chatSection = document.getElementById('chat-section');
-          if (chatSection) {
-            chatSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 100);
-      }
-      
-      // Always keep chat messages scrolled to bottom
-      setTimeout(() => {
-        if (chatMessagesRef.current) {
-          chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-        }
-      }, 50);
-      
-      previousHeight = currentHeight;
+    const updateHeight = () => {
+      setViewportHeight(window.innerHeight);
     };
-
-    // Handle iOS keyboard behavior
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
-      return () => {
-        window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
-      };
-    }
+    
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
   }, []);
+
+  // Check if mobile keyboard is likely open
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const initialHeight = typeof window !== 'undefined' ? window.screen.height : 0;
+  const isKeyboardOpen = isMobile && viewportHeight < initialHeight * 0.75;
+
 
   // Display Area Component
   const DisplayArea = () => {
@@ -202,7 +179,7 @@ const MultiModalChatInterface: React.FC<MultiModalChatInterfaceProps> = ({ onAge
         bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 
         transition-all duration-300 relative overflow-hidden flex-shrink-0
         ${isDisplayExpanded 
-          ? 'h-32 sm:h-40 md:h-48 lg:h-56' 
+          ? 'h-48 sm:h-56 md:h-64 lg:h-72' 
           : 'h-10'
         }
       `}>
@@ -362,29 +339,20 @@ function controlHardware(device, action) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 w-full lg:max-w-4xl lg:mx-auto">
-      {/* Header */}
-      <div className="gradient-bg text-white p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-3">
-              <i className="fas fa-robot text-white text-sm"></i>
-            </div>
-            <div className="text-left">
-              <h4 className="font-semibold text-sm">Multi-Modal Assistant</h4>
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            <button 
-              onClick={clearChat} 
-              className="text-white hover:text-gray-200 transition-colors" 
-              title="Clear Chat"
-            >
-              <i className="fas fa-trash text-sm"></i>
-            </button>
-          </div>
-        </div>
-      </div>
+    <div 
+      className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 w-full lg:max-w-4xl lg:mx-auto"
+      style={isKeyboardOpen ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: `${viewportHeight}px`,
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 1000,
+        borderRadius: 0
+      } : {}}
+    >
 
       {/* Display Area */}
       <DisplayArea />
@@ -393,6 +361,7 @@ function controlHardware(device, action) {
       <div 
         ref={chatMessagesRef}
         className="chat-container overflow-y-auto p-4 bg-gray-50 smooth-scroll"
+        style={isKeyboardOpen ? { flex: 1, minHeight: 0 } : {}}
       >
         {messages.map((message, index) => (
           <div key={index} className="mb-4 message-fade-in">
@@ -462,7 +431,10 @@ function controlHardware(device, action) {
       </div>
 
       {/* Chat Input - Same structure as old */}
-      <div className="p-4 border-t border-gray-200 bg-white">
+      <div 
+        className="p-4 border-t border-gray-200 bg-white"
+        style={isKeyboardOpen ? { flexShrink: 0 } : {}}
+      >
         <div className="flex gap-2">
           <input
             ref={inputRef}
