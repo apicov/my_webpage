@@ -129,16 +129,16 @@ const ProjectPage: React.FC = () => {
                   remarkPlugins={[remarkGfm]}
                   components={{
                     h1: ({node, ...props}) => (
-                      <h1 {...props} className="text-3xl font-bold text-gray-900 mt-8 mb-4 pb-2 border-b-2 border-gray-200" />
+                      <h1 {...props} className="text-3xl font-bold text-gray-900 mt-8 mb-4 pb-2 border-b-2 border-gray-200 text-left" />
                     ),
                     h2: ({node, ...props}) => (
-                      <h2 {...props} className="text-2xl font-bold text-gray-800 mt-8 mb-4 pb-2 border-b border-gray-100" />
+                      <h2 {...props} className="text-2xl font-bold text-gray-800 mt-8 mb-4 pb-2 border-b border-gray-100 text-left" />
                     ),
                     h3: ({node, ...props}) => (
-                      <h3 {...props} className="text-xl font-semibold text-gray-800 mt-6 mb-3" />
+                      <h3 {...props} className="text-xl font-semibold text-gray-800 mt-6 mb-3 text-left" />
                     ),
                     h4: ({node, ...props}) => (
-                      <h4 {...props} className="text-xl font-semibold text-gray-700 mt-6 mb-3" />
+                      <h4 {...props} className="text-xl font-semibold text-gray-700 mt-6 mb-3 text-left" />
                     ),
                     p: ({node, ...props}) => (
                       <p {...props} className="text-gray-700 leading-loose mb-6 text-lg text-justify" />
@@ -159,7 +159,18 @@ const ProjectPage: React.FC = () => {
                       <em {...props} className="italic text-gray-800" />
                     ),
                     img: ({node, ...props}) => (
-                      <img {...props} className="rounded-xl shadow-2xl my-8 w-full" />
+                      <figure className="my-6 text-center">
+                        <img 
+                          {...props} 
+                          className="rounded-xl shadow-lg w-full mx-auto h-auto" 
+                          style={{ maxWidth: '600px' }}
+                        />
+                        {props.alt && (
+                          <figcaption className="mt-2 text-sm text-gray-600 italic">
+                            {props.alt}
+                          </figcaption>
+                        )}
+                      </figure>
                     ),
                     a: ({node, ...props}) => (
                       <a {...props} className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer" />

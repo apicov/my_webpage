@@ -23,14 +23,15 @@ code {
 .chat-container {
   height: 60vh; /* Use viewport height instead of fixed pixels */
   min-height: 300px; /* Minimum height for small screens */
-  max-height: 600px; /* Maximum height for large screens */
+  max-height: 450px; /* Shorter maximum height for desktop */
 }
 
 /* Mobile-specific chat container */
 @media (max-width: 768px) {
   .chat-container {
-    height: 50vh; /* Smaller on mobile */
-    min-height: 250px;
+    height: calc(100svh - 300px); /* Dynamic height: full screen minus space for header, display, input */
+    min-height: 200px;
+    max-height: calc(100svh - 200px); /* Never exceed screen minus minimal margins */
   }
 }
 
@@ -89,6 +90,15 @@ code {
   /* Improve touch targets */
   button, input, select, textarea {
     font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Fix viewport height issues with mobile keyboards */
+  html {
+    height: -webkit-fill-available;
+  }
+  
+  body {
+    height: -webkit-fill-available;
   }
   
   /* Better spacing for mobile */

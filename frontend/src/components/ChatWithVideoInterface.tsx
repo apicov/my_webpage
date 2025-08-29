@@ -269,7 +269,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] lg:max-w-[80%] px-4 py-3 rounded-lg ${
+              className={`max-w-[85%] md:max-w-[70%] lg:max-w-[60%] xl:max-w-[50%] px-4 py-3 rounded-lg ${
                 message.role === 'user'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-800'

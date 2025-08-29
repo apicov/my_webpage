@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import HeroSection from '../components/HeroSection';
-import ChatInterface from '../components/ChatInterface';
+import MultiModalChatInterface from '../components/MultiModalChatInterface';
 import SkillsSection from '../components/SkillsSection';
 import ExperienceSection from '../components/ExperienceSection';
 import ProjectsSection from '../components/ProjectsSection';
@@ -18,7 +18,17 @@ const HomePage: React.FC = () => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       const heroHeight = window.innerHeight * 0.3; // Show nav after scrolling past 30% of viewport
-      setShowNav(scrollPosition > heroHeight);
+      
+      // Hide nav when user is in chat area (mobile only)
+      const chatSection = document.getElementById('chat-section');
+      if (chatSection && window.innerWidth <= 768) {
+        const chatRect = chatSection.getBoundingClientRect();
+        const isInChatArea = chatRect.top < window.innerHeight * 0.5 && chatRect.bottom > 0;
+        setShowNav(scrollPosition > heroHeight && !isInChatArea);
+      } else {
+        // Desktop: keep normal behavior
+        setShowNav(scrollPosition > heroHeight);
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -112,15 +122,15 @@ const HomePage: React.FC = () => {
           </div>
         </nav>
       )}
-      <div id="hero" className="flex flex-col lg:flex-row container mx-auto px-4 py-8 gap-8">
+      <div id="hero" className="flex flex-col lg:flex-row container mx-auto px-4 py-4 sm:py-8 gap-4 sm:gap-8 lg:items-stretch">
         {/* Left Side: Hero Section */}
-        <div className="w-full lg:w-1/2 mb-8 lg:mb-0 flex items-center justify-center">
+        <div className="w-full lg:w-1/2 mb-4 sm:mb-8 lg:mb-0 flex items-center justify-center">
           <HeroSection userInfo={userInfo || undefined} />
         </div>
         
-        {/* Right Side: Chat Interface */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center">
-          <ChatInterface userInfo={userInfo || undefined} />
+        {/* Right Side: Multi-Modal Chat Interface */}
+        <div id="chat-section" className="w-full lg:w-1/2 flex items-center justify-center">
+          <MultiModalChatInterface userInfo={userInfo || undefined} />
         </div>
       </div>
 

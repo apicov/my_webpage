@@ -91,8 +91,8 @@ def get_projects():
         # Create directory if it doesn't exist
         project_dir.mkdir(parents=True, exist_ok=True)
         
-        # Read all markdown files in the projects directory
-        for md_file in project_dir.glob('*.md'):
+        # Read all markdown files in the projects directory (including subfolders)
+        for md_file in project_dir.glob('**/*.md'):
             with open(md_file, 'r', encoding='utf-8') as f:
                 post = frontmatter.load(f)
                 
@@ -134,9 +134,16 @@ def serve_data_files(filename):
 def get_project(project_id):
     """API endpoint to get a single project by ID"""
     try:
-        project_file = Path(f'./data/projects/{project_id}.md')
+        # Search for the project file recursively
+        project_dir = Path('./data/projects')
+        project_file = None
         
-        if not project_file.exists():
+        # Look for the markdown file in any subfolder
+        for md_file in project_dir.glob(f'**/{project_id}.md'):
+            project_file = md_file
+            break
+        
+        if not project_file or not project_file.exists():
             return jsonify({'error': 'Project not found'}), 404
         
         with open(project_file, 'r', encoding='utf-8') as f:
