@@ -9,7 +9,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
-from  ai_assistant import Assistant
+from agents.orchestrator import LangGraphOrchestrator
+import asyncio
 
 
 app = Flask(__name__)
@@ -24,7 +25,7 @@ with open("./data/summary.txt", "r", encoding="utf-8") as f:
 with open("./data/resume.md", "r", encoding="utf-8") as f:
     resume = f.read()
 
-assistant = Assistant(name, last_name, summary, resume)
+assistant = LangGraphOrchestrator(name, last_name, summary, resume)
 
 # Load personal info from JSON file
 with open('./data/personal_info.json', 'r', encoding='utf-8') as f:
@@ -42,7 +43,7 @@ def message_to_dict(msg):
 
 
 def get_ai_response(messages):
-    response = assistant.get_response(messages)
+    response = asyncio.run(assistant.get_response(messages))
     return response
     
 @app.route('/chat', methods=['POST'])
