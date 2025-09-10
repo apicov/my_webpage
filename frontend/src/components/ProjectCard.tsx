@@ -9,7 +9,7 @@ interface ProjectCardProps {
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
   return (
     <div 
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer h-full flex flex-col border border-gray-200"
       onClick={onClick}
     >
       {(project.thumbnail || project.imageUrl) && (
@@ -22,7 +22,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
         </div>
       )}
       
-      <div className="p-6">
+      <div className="p-6 flex-1 flex flex-col">
         <div className="mb-2">
           <h3 className="text-xl font-bold text-gray-800">{project.title}</h3>
         </div>
@@ -46,6 +46,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
             </span>
           )}
         </div>
+        
+        <div className="flex-1"></div>
         
         <div className="flex items-center justify-end">
           <div className="flex gap-3">
