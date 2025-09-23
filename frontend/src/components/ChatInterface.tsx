@@ -156,13 +156,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ userInfo }) => {
     <section id="chat-section" className="w-full h-full flex items-center">
       <div className="w-full">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">Ask My AI Assistant</h3>
-            <p className="text-lg text-gray-600">
-              Want to know more about my experience, skills, or projects? 
-              Chat with my AI assistant
-            </p>
-          </div>
           
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
             {/* Chat Header */}
@@ -173,8 +166,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ userInfo }) => {
                     <i className="fas fa-robot text-white"></i>
                   </div>
                   <div className="text-left">
-                    <h4 className="font-semibold text-left">Professional Assistant</h4>
-                    <p className="text-sm opacity-90 text-left">Ask me anything about {userInfo?.name || 'Your Name'}'s background</p>
+                    <h4 className="font-semibold text-left">Ask My AI Assistant</h4>
+                    <p className="text-sm opacity-90 text-left">Want to know more about my experience, skills, or projects? Chat with my AI assistant</p>
                   </div>
                 </div>
                 <div className="flex space-x-2">
