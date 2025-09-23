@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage } from '../types';
-import { chatWithAI } from '../services/api';
+import { chatWithTicTacToe } from '../services/api';
 // Temporarily commented out Janus import to test if it's breaking the site
 // @ts-ignore - Janus library doesn't have proper TypeScript definitions
 // const Janus = require('janus-gateway');
@@ -22,6 +22,9 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   const [isConnecting, setIsConnecting] = useState(false);
   const [isVideoExpanded, setIsVideoExpanded] = useState(true);
   const [hardwareStatus, setHardwareStatus] = useState<Record<string, any>>({});
+  const [userId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [gameState, setGameState] = useState<string>('waiting');
+  const [gameBoard, setGameBoard] = useState<number[][]>([[0,0,0],[0,0,0],[0,0,0]]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -260,7 +263,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   };
 
 
-  // Send message to hardware control agent
+  // Send message to TicTacToe game
   const sendMessage = async () => {
     if (!inputMessage.trim() || isSending) return;
 
@@ -274,29 +277,22 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     setIsSending(true);
 
     try {
-      // Send to hardware control endpoint
-      const response = await chatWithAI([...messages, userMessage]);
-      
-      if (response && response.response) {
+      // Send to TicTacToe endpoint
+      const response = await chatWithTicTacToe(inputMessage, userId);
+
+      if (response) {
         const assistantMessage: ChatMessage = {
           role: 'assistant',
-          content: response.response
+          content: response.message
         };
         setMessages(prev => [...prev, assistantMessage]);
-        
-        // Simulate hardware status update
-        const updatedStatus = { ...hardwareStatus };
-        if (inputMessage.toLowerCase().includes('led')) {
-          updatedStatus.led = 'on';
-        } else if (inputMessage.toLowerCase().includes('servo')) {
-          updatedStatus.servo = '90°';
-        } else if (inputMessage.toLowerCase().includes('sensor')) {
-          updatedStatus.temperature = '24.5°C';
-          updatedStatus.humidity = '45%';
-        }
-        
-        setHardwareStatus(updatedStatus);
-        onHardwareStatusUpdate?.(updatedStatus);
+
+        // Update game state
+        setGameState(response.state);
+
+        // Simple hardware status update
+        setHardwareStatus({ game_state: response.state });
+        onHardwareStatusUpdate?.({ game_state: response.state });
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -352,10 +348,12 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       {/* Header with Connection Status */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 flex justify-between items-center">
         <div>
-          <h2 className="font-semibold">Hardware Control Assistant</h2>
+          <h2 className="font-semibold">TicTacToe AI Game</h2>
           <div className="flex items-center gap-2 text-sm opacity-90">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-            <span>{isConnecting ? 'Connecting...' : isConnected ? 'Live' : 'Offline'}</span>
+            <span>{isConnecting ? 'Connecting...' : isConnected ? 'Camera Live' : 'Camera Offline'}</span>
+            <span className="mx-2">•</span>
+            <span>Game: {gameState}</span>
             {isConnected && timeRemaining !== null && (
               <span className="text-xs opacity-75">({timeRemaining}m left)</span>
             )}
@@ -462,8 +460,8 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
             <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
-            <p>Connect your camera and start controlling hardware</p>
-            <p className="text-sm mt-2">Try: "Turn on the LED" or "Read temperature sensor"</p>
+            <p>Ready to play TicTacToe! 🎮</p>
+            <p className="text-sm mt-2">Send any message to start a new game</p>
           </div>
         )}
         
@@ -507,7 +505,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Ask me to control hardware..."
+            placeholder="Type a message to start playing..."
             disabled={isSending}
             className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
           />

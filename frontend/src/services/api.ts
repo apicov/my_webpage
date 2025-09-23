@@ -55,10 +55,42 @@ export const chatWithAI = async (messages: ChatMessage[]): Promise<{ response: s
       // Add timeout for better UX
       signal: AbortSignal.timeout(30000) // 30 second timeout
     });
-    
+
     return handleResponse<{ response: string }>(response);
   } catch (error) {
     return handleNetworkError(error, 'Chat API');
+  }
+};
+
+// TicTacToe API - Simple unified interface
+interface TicTacToeMessage {
+  message: string;
+  state?: 'start' | 'reset' | 'playing' | 'finished' | 'busy' | 'error';
+  user_id: string;
+}
+
+interface TicTacToeResponse {
+  message: string;
+  state: 'playing' | 'finished' | 'busy' | 'error';
+}
+
+export const chatWithTicTacToe = async (message: string, userId: string, state?: string): Promise<TicTacToeResponse> => {
+  try {
+    const payload: TicTacToeMessage = { message, user_id: userId };
+    if (state) payload.state = state as any;
+
+    const response = await fetch(`${API_BASE}/tictactoe/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000)
+    });
+
+    return handleResponse<TicTacToeResponse>(response);
+  } catch (error) {
+    return handleNetworkError(error, 'TicTacToe Chat API');
   }
 };
 
