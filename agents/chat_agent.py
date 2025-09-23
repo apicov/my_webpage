@@ -92,24 +92,6 @@ class ChatAgent(BaseAgent):
         # Create system prompt (exact same as original)
         self.system_prompt = self._create_system_prompt()
     
-    def get_capabilities(self) -> List[str]:
-        return [
-            "general_conversation",
-            "career_questions", 
-            "professional_information",
-            "contact_facilitation",
-            "resume_questions",
-            "experience_discussion",
-            "skills_overview"
-        ]
-    
-    def can_handle(self, message: str, context: Dict = None) -> float:
-        """
-        This method is now primarily for documentation.
-        The LLM router handles the actual routing decisions.
-        """
-        return 0.8  # High confidence as fallback agent
-    
     async def handle(self, messages: List[BaseMessage], session_id: str, context: Dict = None) -> Dict[str, Any]:
         """Handle the conversation with LangGraph tool calling (same logic as original Assistant)"""
         
