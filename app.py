@@ -9,7 +9,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
-from agents.orchestrator import LangGraphOrchestrator
+from agents.chat_agent import ChatAgent
 import asyncio
 
 
@@ -25,7 +25,8 @@ with open("./data/summary.txt", "r", encoding="utf-8") as f:
 with open("./data/resume.md", "r", encoding="utf-8") as f:
     resume = f.read()
 
-assistant = LangGraphOrchestrator(name, last_name, summary, resume)
+# Use ChatAgent directly instead of orchestrator
+chat_agent = ChatAgent(name, last_name, summary, resume)
 
 # Load personal info from JSON file
 with open('./data/personal_info.json', 'r', encoding='utf-8') as f:
@@ -42,9 +43,25 @@ def message_to_dict(msg):
     return vars(msg)
 
 
-def get_ai_response(messages):
-    response = asyncio.run(assistant.get_response(messages))
-    return response
+async def get_ai_response(messages):
+    # Convert messages to LangChain format
+    from langchain_core.messages import HumanMessage, AIMessage
+
+    lc_messages = []
+    for msg in messages:
+        if msg.get("role") == "user":
+            lc_messages.append(HumanMessage(content=msg["content"]))
+        elif msg.get("role") == "assistant":
+            lc_messages.append(AIMessage(content=msg["content"]))
+
+    # Call chat agent directly
+    response = await chat_agent.handle(lc_messages, "web_session", {})
+
+    # Return in expected format
+    return [{
+        "role": "assistant",
+        "content": response.get("content", "I apologize, but I couldn't generate a response.")
+    }]
     
 @app.route('/chat', methods=['POST'])
 @app.route('/api/chat', methods=['POST'])
@@ -58,7 +75,7 @@ def chat():
             return jsonify({'error': 'No message provided'}), 400
         
         # Get AI response
-        ai_response = get_ai_response(messages)
+        ai_response = asyncio.run(get_ai_response(messages))
         messages_dicts = [message_to_dict(m) for m in ai_response]
         print(messages_dicts)
         #time.sleep(1)

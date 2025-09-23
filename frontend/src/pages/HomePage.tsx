@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import HeroSection from '../components/HeroSection';
-import MultiModalChatInterface from '../components/MultiModalChatInterface';
+import ChatInterface from '../components/ChatInterface';
 import SkillsSection from '../components/SkillsSection';
 import ExperienceSection from '../components/ExperienceSection';
 import ProjectsSection from '../components/ProjectsSection';
@@ -128,9 +128,9 @@ const HomePage: React.FC = () => {
           <HeroSection userInfo={userInfo || undefined} />
         </div>
         
-        {/* Right Side: Multi-Modal Chat Interface */}
+        {/* Right Side: Chat Interface */}
         <div id="chat-section" className="w-full lg:w-1/2 flex items-center justify-center">
-          <MultiModalChatInterface userInfo={userInfo || undefined} />
+          <ChatInterface userInfo={userInfo || undefined} />
         </div>
       </div>
 
