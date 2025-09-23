@@ -33,31 +33,43 @@ def call_camera_api(endpoint, method='GET'):
         return {"error": str(e)}
 
 def auto_shutdown_camera():
-    """Auto-shutdown camera after timeout"""
+    """Auto-shutdown camera after 5-minute absolute time limit"""
     global camera_state
-    print("Auto-shutting down camera due to inactivity")
+    print("Auto-shutting down camera - 5 minute limit reached")
     result = call_camera_api('/camera/stop', 'POST')
     camera_state['running'] = False
     camera_state['last_activity'] = None
     camera_state['auto_shutdown_timer'] = None
+    camera_state['started_at'] = None
     print(f"Camera auto-shutdown result: {result}")
 
-def reset_camera_timer():
-    """Reset/restart the camera auto-shutdown timer"""
+def start_camera_timer():
+    """Start absolute 5-minute timer (no reset allowed)"""
     global camera_state
 
-    # Cancel existing timer
+    # Cancel any existing timer
     if camera_state['auto_shutdown_timer']:
         camera_state['auto_shutdown_timer'].cancel()
 
-    # Start new timer
+    # Start new absolute timer - exactly 5 minutes from now
+    camera_state['started_at'] = datetime.now()
     camera_state['last_activity'] = datetime.now()
     camera_state['auto_shutdown_timer'] = threading.Timer(
         CAMERA_TIMEOUT_MINUTES * 60,
         auto_shutdown_camera
     )
     camera_state['auto_shutdown_timer'].start()
-    print(f"Camera timer reset - will auto-shutdown in {CAMERA_TIMEOUT_MINUTES} minutes")
+    print(f"Camera started - will auto-shutdown in exactly {CAMERA_TIMEOUT_MINUTES} minutes")
+
+def get_time_remaining():
+    """Get time remaining in minutes (for display)"""
+    global camera_state
+    if not camera_state['started_at']:
+        return None
+
+    elapsed = datetime.now() - camera_state['started_at']
+    remaining = timedelta(minutes=CAMERA_TIMEOUT_MINUTES) - elapsed
+    return max(0, int(remaining.total_seconds() / 60))
 
 @stream_bp.route('/start', methods=['POST'])
 @stream_bp.route('/api/stream/start', methods=['POST'])
@@ -70,14 +82,15 @@ def start_stream():
         status = call_camera_api('/camera/status')
 
         if status.get('running'):
-            # Camera already running - just reset timer
-            reset_camera_timer()
+            # Camera already running - no reset, return remaining time
+            time_remaining = get_time_remaining()
             return jsonify({
                 'status': 'success',
-                'message': 'Stream already active, timer reset',
+                'message': 'Stream already active',
                 'running': True,
                 'janus_url': JANUS_WEBSOCKET_URL,
-                'timeout_minutes': CAMERA_TIMEOUT_MINUTES
+                'timeout_minutes': CAMERA_TIMEOUT_MINUTES,
+                'time_remaining_minutes': time_remaining
             })
 
         # Start camera
@@ -86,7 +99,7 @@ def start_stream():
 
         if result.get('status') in ['started', 'already_running']:
             camera_state['running'] = True
-            reset_camera_timer()
+            start_camera_timer()
 
             return jsonify({
                 'status': 'success',
@@ -94,6 +107,7 @@ def start_stream():
                 'running': True,
                 'janus_url': JANUS_WEBSOCKET_URL,
                 'timeout_minutes': CAMERA_TIMEOUT_MINUTES,
+                'time_remaining_minutes': CAMERA_TIMEOUT_MINUTES,
                 'camera_result': result
             })
         else:
@@ -160,11 +174,7 @@ def stream_status():
                 camera_state['auto_shutdown_timer'].cancel()
                 camera_state['auto_shutdown_timer'] = None
 
-        time_remaining = None
-        if camera_state['running'] and camera_state['last_activity']:
-            elapsed = datetime.now() - camera_state['last_activity']
-            remaining = timedelta(minutes=CAMERA_TIMEOUT_MINUTES) - elapsed
-            time_remaining = max(0, int(remaining.total_seconds() / 60))
+        time_remaining = get_time_remaining()
 
         return jsonify({
             'status': 'success',
@@ -183,21 +193,3 @@ def stream_status():
             'message': f'Status check failed: {str(e)}'
         }), 500
 
-@stream_bp.route('/ping', methods=['POST'])
-@stream_bp.route('/api/stream/ping', methods=['POST'])
-def stream_ping():
-    """Ping endpoint to reset camera timer (extend session)"""
-    global camera_state
-
-    if camera_state['running']:
-        reset_camera_timer()
-        return jsonify({
-            'status': 'success',
-            'message': 'Timer reset - session extended',
-            'time_remaining_minutes': CAMERA_TIMEOUT_MINUTES
-        })
-    else:
-        return jsonify({
-            'status': 'error',
-            'message': 'Stream not running'
-        }), 400

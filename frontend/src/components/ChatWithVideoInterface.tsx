@@ -31,6 +31,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const frontendTimerRef = useRef<NodeJS.Timeout | null>(null);
   const janusRef = useRef<any>(null);
   const streamingRef = useRef<any>(null);
 
@@ -63,8 +64,8 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         // Initialize Janus WebRTC connection
         try {
           await initializeJanus(result.janus_url);
-          // Start periodic ping to keep session alive (every 2 minutes)
-          startPingInterval();
+          // Start 5-minute frontend timer
+          startFrontendTimer();
         } catch (janusError) {
           console.error('Janus connection failed:', janusError);
           setIsConnected(false);
@@ -117,10 +118,15 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       setIsConnecting(false);
       setTimeRemaining(null);
 
-      // Stop ping interval
+      // Stop all timers
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
         pingIntervalRef.current = null;
+      }
+
+      if (frontendTimerRef.current) {
+        clearTimeout(frontendTimerRef.current);
+        frontendTimerRef.current = null;
       }
 
       if (videoRef.current) {
@@ -237,29 +243,103 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     });
   };
 
-  // Start periodic ping to keep camera session alive
-  const startPingInterval = () => {
+  // Check camera status periodically to detect auto-disconnect
+  const startStatusPolling = () => {
     // Clear existing interval
     if (pingIntervalRef.current) {
       clearInterval(pingIntervalRef.current);
     }
 
-    // Ping every 2 minutes to keep session alive
+    // Check status every 30 seconds
     pingIntervalRef.current = setInterval(async () => {
       try {
-        const response = await fetch('/api/stream/ping', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
+        const response = await fetch('/api/stream/status');
         const result = await response.json();
+
         if (result.status === 'success') {
-          setTimeRemaining(result.time_remaining_minutes);
+          if (!result.running && isConnected) {
+            // Camera was auto-disconnected
+            console.log('Camera auto-disconnected by server');
+            handleAutoDisconnect();
+          } else if (result.running) {
+            // Update remaining time
+            setTimeRemaining(result.time_remaining_minutes);
+          }
         }
       } catch (error) {
-        console.error('Failed to ping camera session:', error);
+        console.error('Failed to check camera status:', error);
       }
-    }, 120000); // 2 minutes
+    }, 30000); // 30 seconds
+  };
+
+  // Start 5-minute frontend timer
+  const startFrontendTimer = () => {
+    // Clear existing timer
+    if (frontendTimerRef.current) {
+      clearTimeout(frontendTimerRef.current);
+    }
+
+    // Start countdown display
+    let remainingSeconds = 5 * 60; // 5 minutes
+    setTimeRemaining(Math.ceil(remainingSeconds / 60));
+
+    const countdownInterval = setInterval(() => {
+      remainingSeconds -= 1;
+      setTimeRemaining(Math.ceil(remainingSeconds / 60));
+
+      if (remainingSeconds <= 0) {
+        clearInterval(countdownInterval);
+      }
+    }, 1000);
+
+    // Set 5-minute auto-disconnect timer
+    frontendTimerRef.current = setTimeout(() => {
+      console.log('Frontend timer expired - disconnecting');
+      clearInterval(countdownInterval);
+      handleAutoDisconnect();
+    }, 5 * 60 * 1000); // 5 minutes
+  };
+
+  // Handle automatic disconnection
+  const handleAutoDisconnect = () => {
+    console.log('Handling auto-disconnect');
+
+    // Clean up connections
+    if (streamingRef.current) {
+      streamingRef.current.detach();
+      streamingRef.current = null;
+    }
+
+    if (janusRef.current) {
+      janusRef.current.destroy();
+      janusRef.current = null;
+    }
+
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    // Update UI state
+    setIsConnected(false);
+    setIsConnecting(false);
+    setTimeRemaining(null);
+
+    // Clear video
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    // Stop all timers
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+
+    if (frontendTimerRef.current) {
+      clearTimeout(frontendTimerRef.current);
+      frontendTimerRef.current = null;
+    }
   };
 
 
@@ -322,9 +402,13 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Clean up intervals
+      // Clean up all timers
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
+      }
+
+      if (frontendTimerRef.current) {
+        clearTimeout(frontendTimerRef.current);
       }
 
       // Clean up Janus connections (but don't stop camera on unmount, let it auto-timeout)
