@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage } from '../types';
 import { chatWithAI } from '../services/api';
+// Temporarily commented out Janus import to test if it's breaking the site
+// @ts-ignore - Janus library doesn't have proper TypeScript definitions
+// const Janus = require('janus-gateway');
 
 interface WebRTCConfig {
   iceServers: { urls: string }[];
@@ -23,67 +26,239 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const janusRef = useRef<any>(null);
+  const streamingRef = useRef<any>(null);
 
-  // WebRTC configuration
-  const webrtcConfig: WebRTCConfig = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
-    ]
-  };
+  // WebRTC configuration (kept for future use)
+  // const webrtcConfig: WebRTCConfig = {
+  //   iceServers: [
+  //     { urls: 'stun:stun.l.google.com:19302' }
+  //   ]
+  // };
 
-  // Initialize WebRTC connection
+  // Start camera stream via unified API
   const initWebRTC = async () => {
     setIsConnecting(true);
     try {
-      const pc = new RTCPeerConnection(webrtcConfig);
-      peerConnectionRef.current = pc;
-
-      // Handle incoming tracks
-      pc.ontrack = (event) => {
-        if (videoRef.current && event.streams[0]) {
-          videoRef.current.srcObject = event.streams[0];
+      // Call our Flask server to start the camera stream
+      const response = await fetch('/api/stream/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         }
-      };
+      });
 
-      // Handle connection state changes
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'connected') {
-          setIsConnected(true);
-          setIsConnecting(false);
-        } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+      const result = await response.json();
+
+      if (result.status === 'success') {
+        // Camera started successfully
+        setIsConnected(true);
+        setIsConnecting(false);
+
+        // Initialize Janus WebRTC connection
+        try {
+          await initializeJanus(result.janus_url);
+          // Start periodic ping to keep session alive (every 2 minutes)
+          startPingInterval();
+        } catch (janusError) {
+          console.error('Janus connection failed:', janusError);
           setIsConnected(false);
           setIsConnecting(false);
         }
-      };
 
-      // For demo purposes, simulate connection after 2 seconds
-      setTimeout(() => {
-        setIsConnected(true);
-        setIsConnecting(false);
-        // Add a welcome message
-        setMessages([{
-          role: 'assistant',
-          content: '🎥 Camera connected! I can help you control the connected hardware. Try asking me to turn on an LED or read sensor values.'
-        }]);
-      }, 2000);
+      } else {
+        throw new Error(result.message || 'Failed to start camera stream');
+      }
 
     } catch (error) {
-      console.error('Failed to initialize WebRTC:', error);
+      console.error('Failed to start camera stream:', error);
       setIsConnecting(false);
     }
   };
 
-  // Disconnect WebRTC
-  const disconnectWebRTC = () => {
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-    setIsConnected(false);
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
+  // Disconnect and stop camera stream
+  const disconnectWebRTC = async () => {
+    setIsConnecting(true);
+
+    try {
+      // Call our Flask server to stop the camera stream
+      const response = await fetch('/api/stream/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      // Clean up Janus connections
+      if (streamingRef.current) {
+        streamingRef.current.detach();
+        streamingRef.current = null;
+      }
+
+      if (janusRef.current) {
+        janusRef.current.destroy();
+        janusRef.current = null;
+      }
+
+      // Clean up WebRTC connection
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+
+      setIsConnected(false);
+      setIsConnecting(false);
+      setTimeRemaining(null);
+
+      // Stop ping interval
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+
+    } catch (error) {
+      console.error('Failed to stop camera stream:', error);
+      setIsConnecting(false);
     }
   };
+
+  // Wait for Janus library to be available
+  const waitForJanus = () => {
+    return new Promise<void>((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds with 100ms intervals - should be enough for local file
+
+      const checkJanus = () => {
+        attempts++;
+
+        if ((window as any).Janus) {
+          console.log(`Janus library loaded successfully after ${attempts} attempts`);
+          resolve();
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          console.error('Janus library not found after', maxAttempts, 'attempts');
+          console.log('Available on window:', Object.keys(window).filter(k => k.toLowerCase().includes('janus')));
+          reject(new Error(`Janus library failed to load within 5 seconds. Using local janus.js file.`));
+          return;
+        }
+
+        setTimeout(checkJanus, 100);
+      };
+
+      // Check immediately
+      checkJanus();
+    });
+  };
+
+  // Initialize Janus WebRTC using window.Janus (loaded via CDN)
+  const initializeJanus = async (janusUrl: string) => {
+    // Wait for Janus to be available
+    await waitForJanus();
+
+    return new Promise<void>((resolve, reject) => {
+      // Use global Janus from CDN script
+      const Janus = (window as any).Janus;
+
+      Janus.init({
+        debug: false,
+        callback: () => {
+          const janus = new Janus({
+            server: janusUrl,
+            success: () => {
+              console.log("Janus session created");
+              janusRef.current = janus;
+
+              // Attach to streaming plugin
+              janus.attach({
+                plugin: "janus.plugin.streaming",
+                success: (pluginHandle: any) => {
+                  console.log("Plugin attached");
+                  streamingRef.current = pluginHandle;
+
+                  // Start watching stream ID 1
+                  pluginHandle.send({
+                    message: { request: "watch", id: 1 }
+                  });
+                },
+                error: (error: any) => {
+                  console.error("Plugin attach error:", error);
+                  reject(error);
+                },
+                onmessage: (_msg: any, jsep: any) => {
+                  if (jsep) {
+                    streamingRef.current.createAnswer({
+                      jsep: jsep,
+                      media: { audioSend: false, videoSend: false },
+                      success: (jsep: any) => {
+                        streamingRef.current.send({
+                          message: { request: "start" },
+                          jsep: jsep
+                        });
+                      },
+                      error: (error: any) => {
+                        console.error("WebRTC setup failed:", error);
+                        reject(error);
+                      }
+                    });
+                  }
+                },
+                onremotetrack: (track: MediaStreamTrack, _mid: any, on: boolean) => {
+                  if (on && videoRef.current) {
+                    console.log("Got remote track - displaying video");
+                    const stream = new MediaStream([track]);
+                    videoRef.current.srcObject = stream;
+                    setIsConnected(true);
+                    setIsConnecting(false);
+                    resolve();
+                  }
+                }
+              });
+            },
+            error: (error: any) => {
+              console.error("Janus session error:", error);
+              reject(error);
+            }
+          });
+        }
+      });
+    });
+  };
+
+  // Start periodic ping to keep camera session alive
+  const startPingInterval = () => {
+    // Clear existing interval
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+    }
+
+    // Ping every 2 minutes to keep session alive
+    pingIntervalRef.current = setInterval(async () => {
+      try {
+        const response = await fetch('/api/stream/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+        if (result.status === 'success') {
+          setTimeRemaining(result.time_remaining_minutes);
+        }
+      } catch (error) {
+        console.error('Failed to ping camera session:', error);
+      }
+    }, 120000); // 2 minutes
+  };
+
 
   // Send message to hardware control agent
   const sendMessage = async () => {
@@ -139,7 +314,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-focus bottom on page load (especially for mobile)
+  // Auto-focus bottom on page load
   useEffect(() => {
     const timer = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -151,7 +326,24 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      disconnectWebRTC();
+      // Clean up intervals
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+      }
+
+      // Clean up Janus connections (but don't stop camera on unmount, let it auto-timeout)
+      if (streamingRef.current) {
+        streamingRef.current.detach();
+      }
+
+      if (janusRef.current) {
+        janusRef.current.destroy();
+      }
+
+      // Clean up WebRTC
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+      }
     };
   }, []);
 
@@ -164,6 +356,9 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
           <div className="flex items-center gap-2 text-sm opacity-90">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
             <span>{isConnecting ? 'Connecting...' : isConnected ? 'Live' : 'Offline'}</span>
+            {isConnected && timeRemaining !== null && (
+              <span className="text-xs opacity-75">({timeRemaining}m left)</span>
+            )}
           </div>
         </div>
         

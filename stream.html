@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Stream</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        #video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+            aspect-ratio: 16/9;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        button {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .camera-start {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .camera-start:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        .camera-stop {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .camera-stop:hover:not(:disabled) {
+            background-color: #545b62;
+        }
+
+        .stream-start {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .stream-start:hover:not(:disabled) {
+            background-color: #1e7e34;
+        }
+
+        .stream-stop {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .stream-stop:hover:not(:disabled) {
+            background-color: #bd2130;
+        }
+
+        button:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+
+        .status.connecting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status.live {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status.offline {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .info {
+            text-align: center;
+            margin-top: 20px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Live Stream</h1>
+        
+        <video id="video" autoplay playsinline muted></video>
+        
+        <div class="controls">
+            <button id="startCamera" onclick="startCamera()" class="camera-start">Power On Camera</button>
+            <button id="stopCamera" onclick="stopCamera()" class="camera-stop" disabled>Power Off Camera</button>
+            <button id="startStream" onclick="startStream()" class="stream-start" disabled>Start Stream</button>
+            <button id="stopStream" onclick="stopStream()" class="stream-stop" disabled>Stop Stream</button>
+        </div>
+        
+        <div id="status" class="status offline">Camera offline - Click "Power On Camera" to begin</div>
+        
+        <div class="info">
+            WebRTC streaming with ultra-low latency
+        </div>
+    </div>
+
+    <script src="https://webrtchacks.github.io/adapter/adapter-latest.js"></script>
+    <script src="janus.js"></script>
+    <script>
+        let janus = null;
+        let streaming = null;
+        
+        // UPDATE THESE URLs WITH YOUR ACTUAL NGROK ADDRESSES
+        const JANUS_URL = 'wss://303ccd7d0ff4.ngrok-free.app/janus';
+        const CAMERA_API = 'https://910fcadc2b9e.ngrok-free.app';
+        
+        function updateStatus(message, className) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${className}`;
+        }
+
+        // Camera control functions
+        async function startCamera() {
+            try {
+                updateStatus('Starting camera...', 'connecting');
+                document.getElementById('startCamera').disabled = true;
+                
+                const response = await fetch(`${CAMERA_API}/camera/start`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('Camera ready - Click "Start Stream" to go live', 'offline');
+                    document.getElementById('startStream').disabled = false;
+                    document.getElementById('stopCamera').disabled = false;
+                } else {
+                    updateStatus('Camera start failed: ' + data.error, 'offline');
+                    document.getElementById('startCamera').disabled = false;
+                }
+            } catch (error) {
+                updateStatus('Camera control error: ' + error.message, 'offline');
+                document.getElementById('startCamera').disabled = false;
+            }
+        }
+
+        async function stopCamera() {
+            try {
+                // Stop stream first if running
+                if (streaming) {
+                    stopStream();
+                }
+                
+                updateStatus('Stopping camera...', 'connecting');
+                document.getElementById('stopCamera').disabled = true;
+                
+                const response = await fetch(`${CAMERA_API}/camera/stop`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('Camera powered off', 'offline');
+                    document.getElementById('startStream').disabled = true;
+                    document.getElementById('startCamera').disabled = false;
+                } else {
+                    updateStatus('Camera stop failed: ' + data.error, 'offline');
+                    document.getElementById('stopCamera').disabled = false;
+                }
+            } catch (error) {
+                updateStatus('Camera control error: ' + error.message, 'offline');
+                document.getElementById('stopCamera').disabled = false;
+            }
+        }
+
+        // Stream control functions
+        function startStream() {
+            document.getElementById('startStream').disabled = true;
+            updateStatus('Connecting to stream server...', 'connecting');
+            
+            Janus.init({
+                debug: false,
+                callback: function() {
+                    janus = new Janus({
+                        server: JANUS_URL,
+                        success: function() {
+                            updateStatus('Setting up video stream...', 'connecting');
+                            
+                            janus.attach({
+                                plugin: "janus.plugin.streaming",
+                                success: function(pluginHandle) {
+                                    streaming = pluginHandle;
+                                    streaming.send({
+                                        message: { request: "watch", id: 1 }
+                                    });
+                                },
+                                error: function(error) {
+                                    updateStatus('Stream setup failed: ' + error, 'offline');
+                                    document.getElementById('startStream').disabled = false;
+                                },
+                                onmessage: function(msg, jsep) {
+                                    if (jsep) {
+                                        streaming.createAnswer({
+                                            jsep: jsep,
+                                            media: { audioSend: false, videoSend: false },
+                                            success: function(jsep) {
+                                                streaming.send({
+                                                    message: { request: "start" },
+                                                    jsep: jsep
+                                                });
+                                            },
+                                            error: function(error) {
+                                                updateStatus('WebRTC setup failed: ' + error, 'offline');
+                                                document.getElementById('startStream').disabled = false;
+                                            }
+                                        });
+                                    }
+                                },
+                                onremotetrack: function(track, mid, on) {
+                                    if (on) {
+                                        updateStatus('LIVE STREAM ACTIVE', 'live');
+                                        const stream = new MediaStream([track]);
+                                        document.getElementById('video').srcObject = stream;
+                                        document.getElementById('stopStream').disabled = false;
+                                    }
+                                }
+                            });
+                        },
+                        error: function(error) {
+                            updateStatus('Connection failed: ' + error, 'offline');
+                            document.getElementById('startStream').disabled = false;
+                        }
+                    });
+                }
+            });
+        }
+        
+        function stopStream() {
+            updateStatus('Stopping stream...', 'connecting');
+            
+            if (streaming) {
+                streaming.send({ message: { request: "stop" } });
+                streaming.detach();
+                streaming = null;
+            }
+            
+            if (janus) {
+                janus.destroy();
+                janus = null;
+            }
+            
+            document.getElementById('video').srcObject = null;
+            updateStatus('Stream stopped - Camera remains ready', 'offline');
+            document.getElementById('startStream').disabled = false;
+            document.getElementById('stopStream').disabled = true;
+        }
+
+        // Check camera status on page load
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch(`${CAMERA_API}/camera/status`);
+                const data = await response.json();
+                
+                if (data.running) {
+                    document.getElementById('startCamera').disabled = true;
+                    document.getElementById('stopCamera').disabled = false;
+                    document.getElementById('startStream').disabled = false;
+                    updateStatus('Camera ready - Click "Start Stream" to go live', 'offline');
+                } else {
+                    updateStatus('Camera offline - Click "Power On Camera" to begin', 'offline');
+                }
+            } catch (error) {
+                updateStatus('Camera offline - Click "Power On Camera" to begin', 'offline');
+            }
+        });
+        
+        // Auto-cleanup
+        window.addEventListener('beforeunload', function() {
+            if (streaming || janus) {
+                stopStream();
+            }
+        });
+    </script>
+</body>
+</html>
