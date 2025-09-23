@@ -139,6 +139,15 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-focus bottom on page load (especially for mobile)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 300); // Small delay to ensure component is fully rendered
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -147,7 +156,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   }, []);
 
   return (
-    <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden h-full max-h-screen">
+    <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden h-full" style={{ minHeight: '700px', maxHeight: '90vh' }}>
       {/* Header with Connection Status */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 flex justify-between items-center">
         <div>
@@ -252,7 +261,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 py-8">
             <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,23 +325,6 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
           </button>
         </div>
         
-        {/* Quick Commands */}
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs text-gray-500 mr-2">Quick:</span>
-          {['Turn on LED', 'Read sensors', 'Servo 90°', 'Status check'].map((cmd) => (
-            <button
-              key={cmd}
-              onClick={() => setInputMessage(
-                cmd === 'Servo 90°' ? 'Rotate servo to 90 degrees' :
-                cmd === 'Status check' ? 'Show me all hardware status' : cmd
-              )}
-              disabled={isSending}
-              className="text-xs px-3 py-1 bg-white hover:bg-gray-100 border rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {cmd}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );

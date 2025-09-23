@@ -160,20 +160,27 @@ const ProjectPage: React.FC = () => {
                     em: ({node, ...props}) => (
                       <em {...props} className="italic text-gray-800" />
                     ),
-                    img: ({node, ...props}) => (
-                      <figure className="my-6 text-center">
-                        <img 
-                          {...props} 
-                          className="rounded-xl shadow-lg w-full mx-auto h-auto" 
-                          style={{ maxWidth: '600px' }}
-                        />
-                        {props.alt && (
-                          <figcaption className="mt-2 text-sm text-gray-600 italic">
-                            {props.alt}
-                          </figcaption>
-                        )}
-                      </figure>
-                    ),
+                    img: ({node, ...props}) => {
+                      // Preserve inline styles and width/height attributes from HTML
+                      const hasCustomSizing = props.width || props.height || props.style?.width || props.style?.height;
+                      const imgStyle = hasCustomSizing ? props.style : { ...props.style, maxWidth: '600px' };
+                      const imgClass = hasCustomSizing ? "rounded-xl shadow-lg mx-auto h-auto" : "rounded-xl shadow-lg w-full mx-auto h-auto";
+
+                      return (
+                        <figure className="my-6 text-center">
+                          <img
+                            {...props}
+                            className={imgClass}
+                            style={imgStyle}
+                          />
+                          {props.alt && (
+                            <figcaption className="mt-2 text-sm text-gray-600 italic">
+                              {props.alt}
+                            </figcaption>
+                          )}
+                        </figure>
+                      );
+                    },
                     a: ({node, ...props}) => (
                       <a {...props} className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors" target="_blank" rel="noopener noreferrer" />
                     ),
