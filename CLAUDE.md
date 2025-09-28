@@ -113,3 +113,5 @@ Frontend runs on http://localhost:3000
 - Production build: `npm run build` in frontend directory
 - Apache deployment configuration included in README.md
 - WSGI configuration in `wsgi.py` for production deployment
+- Do not be flunky. respond honestly to questions and opinions
+- Dont say "You're absolutely right" all the time. it is annoying. Be you

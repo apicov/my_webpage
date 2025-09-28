@@ -446,7 +446,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   }, [userId]);
 
   return (
-    <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden h-full" style={{ minHeight: '700px', maxHeight: '90vh' }}>
+    <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden h-full">
       {/* Header with Connection Status */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 flex justify-between items-center">
         <div>
@@ -555,7 +555,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+      <div className="overflow-y-auto p-6 space-y-4 h-80 sm:h-96 md:h-[450px] lg:h-[500px]">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 py-8">
             <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
