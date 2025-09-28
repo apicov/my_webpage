@@ -20,6 +20,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   const [inputMessage, setInputMessage] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isVideoExpanded, setIsVideoExpanded] = useState(true);
   const [hardwareStatus, setHardwareStatus] = useState<Record<string, any>>({});
   const [userId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
@@ -28,6 +29,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isSending, setIsSending] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -84,7 +86,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
   // Disconnect and stop camera stream
   const disconnectWebRTC = async () => {
-    setIsConnecting(true);
+    setIsDisconnecting(true);
 
     try {
       // Call our Flask server to stop the camera stream
@@ -116,6 +118,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
       setIsConnected(false);
       setIsConnecting(false);
+      setIsDisconnecting(false);
       setTimeRemaining(null);
 
       // Stop all timers
@@ -136,6 +139,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     } catch (error) {
       console.error('Failed to stop camera stream:', error);
       setIsConnecting(false);
+      setIsDisconnecting(false);
     }
   };
 
@@ -369,10 +373,6 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
         // Update game state
         setGameState(response.state);
-
-        // Simple hardware status update
-        setHardwareStatus({ game_state: response.state });
-        onHardwareStatusUpdate?.({ game_state: response.state });
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -382,6 +382,10 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       }]);
     } finally {
       setIsSending(false);
+      // Refocus the input field so user can continue typing
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -390,18 +394,32 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-focus bottom on page load
+  // Auto-focus bottom and input on page load
   useEffect(() => {
     const timer = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      inputRef.current?.focus(); // Focus the input field when component loads
     }, 300); // Small delay to ensure component is fully rendered
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount and page unload
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Try to reset game when user leaves
+      if (userId) {
+        navigator.sendBeacon('/api/tictactoe/reset',
+          JSON.stringify({user_id: userId}));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      // Clean up event listener
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+
       // Clean up all timers
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
@@ -425,7 +443,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         peerConnectionRef.current.close();
       }
     };
-  }, []);
+  }, [userId]);
 
   return (
     <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden h-full" style={{ minHeight: '700px', maxHeight: '90vh' }}>
@@ -435,9 +453,11 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
           <h2 className="font-semibold">TicTacToe AI Game</h2>
           <div className="flex items-center gap-2 text-sm opacity-90">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-            <span>{isConnecting ? 'Connecting...' : isConnected ? 'Camera Live' : 'Camera Offline'}</span>
-            <span className="mx-2">•</span>
-            <span>Game: {gameState}</span>
+            <span>{
+              isConnecting ? 'Connecting...' :
+              isDisconnecting ? 'Disconnecting...' :
+              isConnected ? 'Camera Live' : 'Camera Offline'
+            }</span>
             {isConnected && timeRemaining !== null && (
               <span className="text-xs opacity-75">({timeRemaining}m left)</span>
             )}
@@ -515,14 +535,11 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
           <div className="h-full flex items-center justify-between px-4 bg-gray-900">
             <div className="flex items-center gap-3 text-white text-sm">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-              <span>Camera {isConnected ? 'Live' : 'Offline'}</span>
-              {Object.keys(hardwareStatus).length > 0 && (
-                <div className="flex gap-2 text-xs text-gray-300">
-                  {Object.entries(hardwareStatus).slice(0, 2).map(([key, value]) => (
-                    <span key={key}>{key}: {value}</span>
-                  ))}
-                </div>
-              )}
+              <span>Camera {
+                isConnecting ? 'Connecting...' :
+                isDisconnecting ? 'Disconnecting...' :
+                isConnected ? 'Live' : 'Offline'
+              }</span>
             </div>
             <button
               onClick={() => setIsVideoExpanded(true)}
@@ -585,6 +602,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       <div className="border-t bg-gray-50 p-4">
         <div className="flex gap-2 mb-3">
           <input
+            ref={inputRef}
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}

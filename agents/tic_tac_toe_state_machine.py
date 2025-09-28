@@ -1,0 +1,480 @@
+# Modular TicTacToe State Machine
+import os
+import random
+from typing import Optional, Literal
+from abc import ABC, abstractmethod
+from pydantic import BaseModel, Field
+from langchain_groq import ChatGroq
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langgraph.prebuilt import create_react_agent
+from .tic_tac_toe_tools import TicTacToeTools
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass  # dotenv not available
+
+# =============================================================================
+# MODELS AND DATA CLASSES
+# =============================================================================
+
+class CameraOnAcknowledgement(BaseModel):
+    camera_on: Optional[bool] = Field(None, description="ONLY set to True if user explicitly confirms camera is visible/working. Leave None if not explicitly stated.")
+    player_name: Optional[str] = Field(None, description="ONLY extract if user explicitly provides their name. Leave None if not provided.")
+    player_symbol: Optional[Literal["X", "O"]] = Field(None, description="ONLY extract if user explicitly chooses X or O. Leave None if not explicitly chosen.")
+    reply: str = Field(..., description="A friendly response acknowledging the input and guiding the conversation forward")
+
+class PlayerReadyResponse(BaseModel):
+    ready_to_start: Optional[bool] = Field(None, description="ONLY set to True if user explicitly confirms they are ready to start the game. Leave None if not explicitly stated.")
+    reply: str = Field(..., description="A friendly response acknowledging the input and guiding the conversation forward")
+
+class MoveResponse(BaseModel):
+    move: Optional[int] = Field(None, description="ONLY extract the cell number (1-9) if user explicitly makes a move or select your move if it is your turn. Leave None if not explicitly stated.")
+    reply: str = Field(..., description="A friendly response acknowledging the input and guiding the conversation forward")
+
+class GameState:
+    """Centralized game state management"""
+    def __init__(self):
+        self.current_state = "welcome"
+        self.messages = []
+        self.player_name = ""
+        self.ai_name = "Bot"
+        self.player_symbol = None
+        self.ai_symbol = None
+        self.start_turn = None
+        self.add_sys_prompt_flag = True
+
+    def set_player_info(self, name: str, symbol: str):
+        self.player_name = name
+        self.player_symbol = symbol
+        self.ai_symbol = "O" if symbol == "X" else "X"
+
+    def transition_to(self, new_state: str):
+        self.current_state = new_state
+        self.add_sys_prompt_flag = True
+
+class GameConfig:
+    """Configuration constants"""
+    def __init__(self, thread_id=None, led_matrix_url=None):
+        self.thread_id = thread_id or os.getenv("THREAD_ID", "ttt-1")
+        self.led_matrix_url = led_matrix_url or os.getenv("MATRIX_URL")
+        self.max_errors = int(os.getenv("MAX_ERRORS", "3"))
+        self.llm_model = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
+        self.llm_temperature = float(os.getenv("LLM_TEMPERATURE", "1.0"))
+
+        if not self.led_matrix_url:
+            raise ValueError("MATRIX_URL environment variable must be set")
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+
+class LLMService:
+    """Centralized LLM interaction service"""
+    def __init__(self, config: GameConfig):
+        self.groq_llm = ChatGroq(
+            groq_api_key=os.getenv('GROQ_API_KEY'),
+            model_name=config.llm_model,
+            temperature=config.llm_temperature
+        )
+
+    def invoke_with_retry(self, messages, response_model, max_retries=2):
+        """Retry wrapper for structured output"""
+        for attempt in range(max_retries + 1):
+            try:
+                structured_llm = self.groq_llm.with_structured_output(response_model)
+                return structured_llm.invoke(messages)
+            except Exception as e:
+                print(f"Structured output attempt {attempt + 1} failed: {e}")
+                if attempt == max_retries:
+                    raise e
+
+    def simple_invoke(self, messages):
+        """Simple LLM invocation without structured output"""
+        return self.groq_llm.invoke(messages)
+
+class ErrorHandler:
+    """Centralized error handling"""
+    def __init__(self, max_errors=3):
+        self.error_count = 0
+        self.max_errors = max_errors
+
+    def handle_error(self, error, context="", fallback_message="I'm having trouble understanding. Let me try again."):
+        """Handle errors with retry logic"""
+        self.error_count += 1
+        print(f"Error in {context}: {error}")
+
+        if self.error_count >= self.max_errors:
+            return "I've encountered several issues. Let's start fresh! Please click the 'Connect Camera' button to begin."
+        else:
+            return fallback_message
+
+    def reset_error_count(self):
+        """Reset error count on successful operation"""
+        self.error_count = 0
+
+class ToolsManager:
+    """Manages tool interactions"""
+    def __init__(self, config: GameConfig):
+        self.tools = TicTacToeTools(config.led_matrix_url, agent_name="Agent")
+        self.tools.unbind_all_tools()
+        # Bind tools using the correct names from the error message
+        self.tools.bind_tools(["status", "move", "win_anim", "draw_anim"])
+
+        # Create ReAct agent
+        llm = ChatGroq(
+            groq_api_key=os.getenv('GROQ_API_KEY'),
+            model_name=config.llm_model,
+            temperature=config.llm_temperature
+        )
+        self.agent = create_react_agent(llm, self.tools.get_tools())
+
+    def setup_game(self, player_name: str, player_symbol: str, ai_name: str, start_turn: str):
+        """Setup game on LED matrix"""
+        return self.tools.setup_game(
+            user_name=player_name,
+            user_symbol=player_symbol,
+            bot_name=ai_name,
+            starting_player=start_turn
+        )
+
+    def full_reset_and_welcome(self):
+        """Reset game and show welcome screen"""
+        try:
+            self.tools.full_reset()
+            self.tools.welcome_screen()
+        except Exception as e:
+            print(f"Error resetting LED matrix: {e}")
+
+class PromptManager:
+    """Manages system prompts for different states"""
+
+    @staticmethod
+    def get_welcome_prompt():
+        return """You are a friendly Tic-Tac-Toe game host. This is the very start of the game. The game will be displayed on a led matrix, which will be streamed to the user, through a web camera. You will play the game with the user.
+
+        Your tasks:
+        1.-Welcome the user enthusiastically and ask them to click on the "Connect Camera" button, and wait some seconds. Make sure they can see the camera on with the led matrix.
+        2.-Extract acknowledgment of the user about the camera on.
+        3.-If the user confirms they can see the camera on, proceed to ask for their name and whether they would like to be X or O.
+
+        CRITICAL STRUCTURED OUTPUT RULES:
+        - ONLY fill camera_on field if user explicitly confirms camera is working/visible
+        - ONLY fill player_name field if user explicitly provides their name
+        - ONLY fill player_symbol field if user explicitly chooses X or O
+        - If user hasn't provided any of these, leave those fields as null/None
+        - Always provide a friendly reply regardless
+
+        PERSISTENCE RULES:
+        - If user avoids giving their name (jokes, says "secret", etc.), politely insist: "I need your actual name to start the game!"
+        - If user doesn't choose X or O clearly, ask again: "Please choose X or O to play as!"
+        - If camera confirmation is missing, keep asking: "Can you see the LED matrix camera is on?"
+        - Do NOT accept evasive answers or move forward without ALL required information
+        - Keep the conversation friendly but persistent until you get real answers
+
+        Do NOT make assumptions or fill fields based on implications. Wait for explicit user input."""
+
+    @staticmethod
+    def get_player_ready_prompt():
+        return """You are a friendly Tic-Tac-Toe game host. The user has provided their name and chosen their symbol. You have asked if they are ready to start the game. Now, you need to confirm if the user is ready to start playing."""
+
+    @staticmethod
+    def get_playing_prompt(player_name: str, ai_name: str, player_symbol: str, ai_symbol: str):
+        return f"""You are a strategic Tic-Tac-Toe player named {ai_name}.
+
+        AVAILABLE TOOLS:
+        - ttt_get_status: Check current game state, board, and whose turn it is
+        - ttt_make_move: Make a move by specifying position 1-9
+        - ttt_win_animation: Show win animation (winner_name, winner_symbol) - MUST call when game ends with a winner
+        - ttt_draw_animation: Show draw/tie animation - MUST call when game ends in a draw
+
+        CRITICAL TURN-BASED BEHAVIOR:
+        1. ALWAYS start by using ttt_get_status to check whose turn it is
+        2. Based on the status response:
+
+           IF IT'S YOUR TURN ({ai_name}):
+           - Use multiple tools in sequence: analyze board, make your move, check status again for game end
+           - If game ended after your move: call appropriate animation (win_animation or draw_animation)
+           - Then provide a friendly response about your move
+
+           IF IT'S THE HUMAN'S TURN ({player_name}):
+           - Ask the human to choose their move (position 1-9)
+           - When they provide a number, YOU must call ttt_make_move with their chosen position
+           - After making their move for them, check ttt_get_status to see if game ended
+           - If game ended: call appropriate animation
+           - Then respond about the move result
+
+        GAME END DETECTION:
+        - After ANY move (yours or human's), check ttt_get_status for:
+          * game_status: "game_over" or similar
+          * winner: player name if someone won
+          * is_draw: true if tied
+        - When game ends, IMMEDIATELY call appropriate animation before responding
+
+        INTERACTION RULES:
+        - YOU are responsible for ALL tool calls (including human moves)
+        - When it's human's turn: ask for their choice, then YOU call ttt_make_move
+        - When it's your turn: YOU call ttt_make_move for yourself
+        - Keep responses friendly and brief
+        - Don't show ASCII boards - user sees LED matrix
+        - When game ends: congratulate and STOP (don't ask about playing again)
+
+        STRATEGY (when it's your turn):
+        - Win if possible (complete your line)
+        - Block opponent's winning move
+        - Take center if available
+        - Take corners over edges
+
+        Current players: {player_name} ({player_symbol}) vs {ai_name} ({ai_symbol})
+
+        REMEMBER:
+        - Check whose turn it is FIRST using ttt_get_status
+        - YOU make ALL tool calls to the LED matrix
+        - If human's turn: ask for position, then YOU call ttt_make_move with their choice
+        - If your turn: YOU call ttt_make_move with your strategic choice
+        - When game ends: show animation and congratulate, don't ask for another game"""
+
+# =============================================================================
+# STATE HANDLERS
+# =============================================================================
+
+class StateHandler(ABC):
+    """Abstract base class for state handlers"""
+
+    @abstractmethod
+    def handle(self, state_machine, message: str) -> str:
+        pass
+
+class WelcomeStateHandler(StateHandler):
+    """Handles welcome state logic"""
+
+    def handle(self, state_machine, message: str) -> str:
+        print("Welcome state")
+
+        if state_machine.state.add_sys_prompt_flag:
+            state_machine.tools_manager.full_reset_and_welcome()
+            state_machine.state.add_sys_prompt_flag = False
+
+        try:
+            greeting_message = state_machine.llm_service.invoke_with_retry(
+                state_machine.state.messages,
+                CameraOnAcknowledgement
+            )
+
+            # Reset error count on success
+            state_machine.error_handler.reset_error_count()
+
+            # Check if user has provided all required info
+            if (greeting_message.player_name and
+                greeting_message.player_symbol and
+                greeting_message.camera_on):
+
+                # Set player info
+                state_machine.state.set_player_info(
+                    greeting_message.player_name,
+                    greeting_message.player_symbol
+                )
+
+                # Update system prompt for next state
+                system_prompt = f"""You are a friendly Tic-Tac-Toe game host. The user has confirmed the camera is working, and has provided their name as {state_machine.state.player_name}, and chosen to be {state_machine.state.player_symbol}. You are {state_machine.state.ai_symbol}. Now ask the user if they are ready to start the game."""
+
+                state_machine.state.messages[0] = SystemMessage(content=system_prompt)
+                response = state_machine.llm_service.simple_invoke(state_machine.state.messages)
+                state_machine.state.messages.append(AIMessage(content=response.content))
+
+                # Randomly select who starts
+                state_machine.state.start_turn = random.choice([
+                    state_machine.state.player_name,
+                    state_machine.state.ai_name
+                ])
+
+                # Setup the game on LED matrix
+                state_machine.tools_manager.setup_game(
+                    state_machine.state.player_name,
+                    state_machine.state.player_symbol,
+                    state_machine.state.ai_name,
+                    state_machine.state.start_turn
+                )
+
+                # Show player vs screen animation
+                state_machine.tools_manager.tools.player_vs_screen()
+
+                # Transition to next state
+                state_machine.state.transition_to('player_ready')
+                return response.content
+
+            state_machine.state.messages.append(AIMessage(content=greeting_message.reply))
+            return greeting_message.reply
+
+        except Exception as e:
+            return state_machine.error_handler.handle_error(
+                e, "welcome state",
+                "I'm having trouble processing your response. Could you please confirm if you can see the camera and provide your name and symbol choice (X or O)?"
+            )
+
+class PlayerReadyStateHandler(StateHandler):
+    """Handles player ready state logic"""
+
+    def handle(self, state_machine, message: str) -> str:
+        print("Player ready state")
+
+        if state_machine.state.add_sys_prompt_flag:
+            system_prompt = PromptManager.get_player_ready_prompt()
+            state_machine.state.messages[0] = SystemMessage(content=system_prompt)
+            state_machine.state.add_sys_prompt_flag = False
+
+        try:
+            ready_message = state_machine.llm_service.invoke_with_retry(
+                state_machine.state.messages,
+                PlayerReadyResponse
+            )
+
+            # Reset error count on success
+            state_machine.error_handler.reset_error_count()
+
+            if ready_message.ready_to_start:
+                state_machine.state.transition_to('playing')
+
+                # Start the game
+                state_machine.tools_manager.tools.start_game()
+
+                if state_machine.state.start_turn == state_machine.state.player_name:
+                    # Player goes first
+                    return state_machine._handle_player_first_move()
+                else:
+                    # AI goes first
+                    return state_machine._handle_ai_first_move()
+            else:
+                return ready_message.reply
+
+        except Exception as e:
+            return state_machine.error_handler.handle_error(
+                e, "player_ready state",
+                "I'm having trouble understanding. Are you ready to start the game? Please say 'yes' or 'ready' to begin."
+            )
+
+class PlayingStateHandler(StateHandler):
+    """Handles gameplay state logic"""
+
+    def handle(self, state_machine, message: str) -> str:
+        if state_machine.state.add_sys_prompt_flag:
+            state_machine.state.add_sys_prompt_flag = False
+            system_prompt = PromptManager.get_playing_prompt(
+                state_machine.state.player_name,
+                state_machine.state.ai_name,
+                state_machine.state.player_symbol,
+                state_machine.state.ai_symbol
+            )
+            state_machine.state.messages[0] = SystemMessage(content=system_prompt)
+
+        try:
+            # Use ReAct agent for gameplay
+            result = state_machine.tools_manager.agent.invoke({
+                "messages": state_machine.state.messages
+            })
+
+            # Reset error count on success
+            state_machine.error_handler.reset_error_count()
+
+            # Update conversation history
+            final_message = result["messages"][-1]
+            state_machine.state.messages = result["messages"]
+
+            return final_message.content
+
+        except Exception as e:
+            return state_machine.error_handler.handle_error(
+                e, "playing state",
+                "I'm having trouble processing your move. Please specify a cell number from 1-9."
+            )
+
+# =============================================================================
+# MAIN STATE MACHINE
+# =============================================================================
+
+class TicTacToeStateMachine:
+    """Modular, maintainable Tic-Tac-Toe state machine"""
+
+    def __init__(self, thread_id=None, led_matrix_url=None):
+        # Initialize components
+        self.config = GameConfig(thread_id, led_matrix_url)
+        self.state = GameState()
+        self.llm_service = LLMService(self.config)
+        self.error_handler = ErrorHandler(self.config.max_errors)
+        self.tools_manager = ToolsManager(self.config)
+
+        # Initialize state handlers
+        self.handlers = {
+            "welcome": WelcomeStateHandler(),
+            "player_ready": PlayerReadyStateHandler(),
+            "playing": PlayingStateHandler()
+        }
+
+        # Initialize conversation with welcome prompt
+        welcome_prompt = PromptManager.get_welcome_prompt()
+        self.state.messages = [SystemMessage(content=welcome_prompt)]
+
+    def step(self, message: str) -> str:
+        """Process a single step in the game state machine"""
+        self.state.messages.append(HumanMessage(content=message))
+
+        try:
+            handler = self.handlers.get(self.state.current_state)
+            if not handler:
+                return "Unknown state. Resetting game."
+
+            return handler.handle(self, message)
+
+        except Exception as e:
+            return self.error_handler.handle_error(e, f"state {self.state.current_state}")
+
+    def _handle_player_first_move(self) -> str:
+        """Handle when player makes the first move"""
+        system_prompt = """You are a friendly Tic-Tac-Toe game host. The user is ready to start the game and will make the first move. Prompt the user to make their move by specifying the cell number (1-9) corresponding to the board positions that are already shown in the led matrix. DO NOT show the board again. - DO NOT show ASCII board representations in your responses"""
+
+        self.state.messages[0] = SystemMessage(content=system_prompt)
+        response = self.llm_service.simple_invoke(self.state.messages)
+        self.state.messages.append(AIMessage(content=response.content))
+        return response.content
+
+    def _handle_ai_first_move(self) -> str:
+        """Handle when AI makes the first move"""
+        system_prompt = """You are a friendly Tic-Tac-Toe game host and very good player. The user is ready to start the game, but you (the AI) will make the first move. Announce your first move by specifying the cell number (1-9) corresponding to the board positions that will be shown in led matrix and then ask the user to make their move. - DO NOT show ASCII board representations in your responses. Extract your move."""
+
+        self.state.messages[0] = SystemMessage(content=system_prompt)
+
+        try:
+            ai_move = self.llm_service.invoke_with_retry(self.state.messages, MoveResponse)
+            self.state.messages.append(AIMessage(content=ai_move.reply))
+
+            if ai_move.move:
+                self.tools_manager.tools.make_move(position=ai_move.move)
+
+            return ai_move.reply
+
+        except Exception as e:
+            return self.error_handler.handle_error(e, "AI first move", "I'm having trouble making my move. Let me try again.")
+
+    def reset_state_machine(self):
+        """Reset the state machine to initial state"""
+        self.state = GameState()
+        self.error_handler = ErrorHandler(self.config.max_errors)
+
+        # Reset with welcome prompt
+        welcome_prompt = PromptManager.get_welcome_prompt()
+        self.state.messages = [SystemMessage(content=welcome_prompt)]
+
+        # Reset LED matrix
+        self.tools_manager.full_reset_and_welcome()
+
+# =============================================================================
+# EXAMPLE USAGE
+# =============================================================================
+
+if __name__ == "__main__":
+    print("✅ TicTacToe State Machine Module Ready!")
+    print("Usage:")
+    print("from tic_tac_toe_state_machine import TicTacToeStateMachine")
+    print("game = TicTacToeStateMachine()")
+    print("response = game.step('your message')")
