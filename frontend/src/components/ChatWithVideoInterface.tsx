@@ -34,6 +34,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const frontendTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cameraCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const janusRef = useRef<any>(null);
   const streamingRef = useRef<any>(null);
 
@@ -43,6 +44,42 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   //     { urls: 'stun:stun.l.google.com:19302' }
   //   ]
   // };
+
+  // Check if camera is running and auto-connect if needed
+  const checkCameraStatusAndConnect = async () => {
+    try {
+      const response = await fetch('/stream/status');
+      const result = await response.json();
+
+      if (result.status === 'success' && result.running && !isConnected && !isConnecting) {
+        console.log('Camera detected running - auto-connecting using manual button flow...');
+
+        // Stop periodic checking since we're about to connect
+        if (cameraCheckIntervalRef.current) {
+          clearInterval(cameraCheckIntervalRef.current);
+          cameraCheckIntervalRef.current = null;
+        }
+
+        // Use the same flow as manual button - call initWebRTC
+        await initWebRTC();
+      }
+    } catch (error) {
+      console.error('Failed to check camera status:', error);
+    }
+  };
+
+  // Connect to existing camera stream (WebRTC only, no camera start)
+  const connectToExistingStream = async (janusUrl: string) => {
+    setIsConnecting(true);
+    try {
+      await initializeJanus(janusUrl);
+      startFrontendTimer();
+    } catch (error) {
+      console.error('Failed to connect to existing stream:', error);
+      setIsConnected(false);
+      setIsConnecting(false);
+    }
+  };
 
   // Start camera stream via unified API
   const initWebRTC = async () => {
@@ -62,6 +99,12 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         // Camera started successfully
         setIsConnected(true);
         setIsConnecting(false);
+
+        // Stop auto-detection polling since we're now connected
+        if (cameraCheckIntervalRef.current) {
+          clearInterval(cameraCheckIntervalRef.current);
+          cameraCheckIntervalRef.current = null;
+        }
 
         // Initialize Janus WebRTC connection
         try {
@@ -373,6 +416,19 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
         // Update game state
         setGameState(response.state);
+
+        // Check if camera started after sending message (for tic-tac-toe auto-start)
+        // Only start auto-detection if not already connected
+        if (!isConnected) {
+          setTimeout(() => {
+            checkCameraStatusAndConnect();
+
+            // Start periodic checking if not already running
+            if (!cameraCheckIntervalRef.current) {
+              cameraCheckIntervalRef.current = setInterval(checkCameraStatusAndConnect, 3000);
+            }
+          }, 2000); // Wait 2 seconds for agent to start camera
+        }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -427,6 +483,10 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
       if (frontendTimerRef.current) {
         clearTimeout(frontendTimerRef.current);
+      }
+
+      if (cameraCheckIntervalRef.current) {
+        clearInterval(cameraCheckIntervalRef.current);
       }
 
       // Clean up Janus connections (but don't stop camera on unmount, let it auto-timeout)
@@ -504,12 +564,14 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                     <p className="text-sm mb-2">Camera not connected</p>
+                    {/* Hidden for now - auto-detection handles connection
                     <button
                       onClick={initWebRTC}
                       className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
                     >
                       Connect Camera
                     </button>
+                    */}
                   </div>
                 )}
               </div>

@@ -11,7 +11,8 @@ stream_bp = Blueprint('stream', __name__)
 camera_state = {
     'running': False,
     'last_activity': None,
-    'auto_shutdown_timer': None
+    'auto_shutdown_timer': None,
+    'started_at': None
 }
 
 # Configuration

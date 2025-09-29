@@ -3,6 +3,7 @@ import os
 import random
 from typing import Optional, Literal
 from abc import ABC, abstractmethod
+from enum import Enum
 from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
@@ -19,8 +20,13 @@ except ImportError:
 # MODELS AND DATA CLASSES
 # =============================================================================
 
+class CameraStatus(str, Enum):
+    WORKING = "working"
+    NOT_WORKING = "not_working"
+    NOT_MENTIONED = "not_mentioned"
+
 class CameraOnAcknowledgement(BaseModel):
-    camera_on: Optional[bool] = Field(None, description="ONLY set to True if user explicitly confirms camera is visible/working. Leave None if not explicitly stated.")
+    camera_status: CameraStatus = Field(CameraStatus.NOT_MENTIONED, description="Set to WORKING if user confirms camera is visible/working, NOT_WORKING if user reports camera issues, NOT_MENTIONED if user doesn't mention camera at all")
     player_name: Optional[str] = Field(None, description="ONLY extract if user explicitly provides their name. Leave None if not provided.")
     player_symbol: Optional[Literal["X", "O"]] = Field(None, description="ONLY extract if user explicitly chooses X or O. Leave None if not explicitly chosen.")
     reply: str = Field(..., description="A friendly response acknowledging the input and guiding the conversation forward")
@@ -130,6 +136,26 @@ class ToolsManager:
         )
         self.agent = create_react_agent(llm, self.tools.get_tools())
 
+    def start_video_stream(self, is_retry=False):
+        """Start video stream via local Flask stream endpoint"""
+        action = "retry" if is_retry else "start"
+        try:
+            import requests
+            # Call the local Flask stream endpoint (same as frontend does)
+            url = "http://localhost:5000/stream/start"
+            response = requests.post(url,
+                                   headers={'Content-Type': 'application/json'},
+                                   timeout=10)
+            print(f"Video stream {action} response: {response.status_code}")
+            if response.status_code == 200:
+                result = response.json()
+                print(f"Stream API result: {result}")
+                return result.get('status') == 'success'
+            return False
+        except Exception as e:
+            print(f"Failed to {action} video stream: {e}")
+            return False
+
     def setup_game(self, player_name: str, player_symbol: str, ai_name: str, start_turn: str):
         """Setup game on LED matrix"""
         return self.tools.setup_game(
@@ -155,21 +181,25 @@ class PromptManager:
         return """You are a friendly Tic-Tac-Toe game host. This is the very start of the game. The game will be displayed on a led matrix, which will be streamed to the user, through a web camera. You will play the game with the user.
 
         Your tasks:
-        1.-Welcome the user enthusiastically and ask them to click on the "Connect Camera" button, and wait some seconds. Make sure they can see the camera on with the led matrix.
-        2.-Extract acknowledgment of the user about the camera on.
-        3.-If the user confirms they can see the camera on, proceed to ask for their name and whether they would like to be X or O.
+        1. Welcome the user enthusiastically and tell them you've automatically turned on the camera stream with the LED matrix
+        2. Ask them to wait a few seconds for the video to load, then confirm if they can see the LED matrix camera feed
+        3. If user confirms they can see the camera/LED matrix, proceed to ask for their name and whether they'd like to be X or O
+        4. If user says they can't see it, offer to try again or troubleshoot
 
         CRITICAL STRUCTURED OUTPUT RULES:
-        - ONLY fill camera_on field if user explicitly confirms camera is working/visible
+        - Set camera_status to WORKING if user explicitly confirms camera is working/visible
+        - Set camera_status to NOT_WORKING if user explicitly says camera isn't working or asks to try again
+        - Set camera_status to NOT_MENTIONED if user doesn't mention camera at all
         - ONLY fill player_name field if user explicitly provides their name
         - ONLY fill player_symbol field if user explicitly chooses X or O
-        - If user hasn't provided any of these, leave those fields as null/None
+        - If user hasn't provided name/symbol, leave those fields as null/None
         - Always provide a friendly reply regardless
 
         PERSISTENCE RULES:
         - If user avoids giving their name (jokes, says "secret", etc.), politely insist: "I need your actual name to start the game!"
         - If user doesn't choose X or O clearly, ask again: "Please choose X or O to play as!"
-        - If camera confirmation is missing, keep asking: "Can you see the LED matrix camera is on?"
+        - If camera confirmation is missing, remind them: "Please wait a few seconds for the video to load. Can you see the LED matrix camera feed?"
+        - If user says camera isn't working, offer: "Let me try connecting again. Please wait a moment..."
         - Do NOT accept evasive answers or move forward without ALL required information
         - Keep the conversation friendly but persistent until you get real answers
 
@@ -256,6 +286,10 @@ class WelcomeStateHandler(StateHandler):
             state_machine.tools_manager.full_reset_and_welcome()
             state_machine.state.add_sys_prompt_flag = False
 
+            # Turn on video stream automatically
+            print("Starting video stream...")
+            state_machine.tools_manager.start_video_stream()
+
         try:
             greeting_message = state_machine.llm_service.invoke_with_retry(
                 state_machine.state.messages,
@@ -265,10 +299,15 @@ class WelcomeStateHandler(StateHandler):
             # Reset error count on success
             state_machine.error_handler.reset_error_count()
 
+            # Handle camera status feedback
+            if greeting_message.camera_status == CameraStatus.NOT_WORKING:
+                print("User reported camera not working - retrying video stream...")
+                state_machine.tools_manager.start_video_stream(is_retry=True)
+
             # Check if user has provided all required info
-            if (greeting_message.player_name and
-                greeting_message.player_symbol and
-                greeting_message.camera_on):
+            if (greeting_message.player_name and \
+                greeting_message.player_symbol and \
+                greeting_message.camera_status == CameraStatus.WORKING):
 
                 # Set player info
                 state_machine.state.set_player_info(
@@ -468,13 +507,3 @@ class TicTacToeStateMachine:
         # Reset LED matrix
         self.tools_manager.full_reset_and_welcome()
 
-# =============================================================================
-# EXAMPLE USAGE
-# =============================================================================
-
-if __name__ == "__main__":
-    print("✅ TicTacToe State Machine Module Ready!")
-    print("Usage:")
-    print("from tic_tac_toe_state_machine import TicTacToeStateMachine")
-    print("game = TicTacToeStateMachine()")
-    print("response = game.step('your message')")

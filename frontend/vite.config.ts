@@ -12,6 +12,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/stream': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
       '/data': {
         target: 'http://localhost:5000',
         changeOrigin: true,
