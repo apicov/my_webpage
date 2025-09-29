@@ -33,7 +33,7 @@ const HardwareControlPage: React.FC = () => {
         </div>
 
         {/* Main Content - Single integrated interface */}
-        <div className="h-[calc(100vh-120px)] max-w-4xl mx-auto">
+        <div className="h-[calc(100vh-120px)] max-w-4xl mx-auto lg:mt-6">
           <ChatWithVideoInterface onHardwareStatusUpdate={handleHardwareStatusUpdate} />
         </div>
 

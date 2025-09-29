@@ -506,11 +506,11 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       setIsSending(false);
       // Scroll to bottom and refocus the input field (desktop only)
       setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end',
-            inline: 'nearest'
+        if (messagesContainerRef.current) {
+          const container = messagesContainerRef.current;
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
           });
         }
         // Only auto-focus on desktop devices
@@ -524,14 +524,16 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   // Auto-scroll to bottom of messages
   useEffect(() => {
     const scrollToBottom = () => {
-      if (messagesEndRef.current) {
+      if (messagesContainerRef.current) {
         // Use requestAnimationFrame to ensure DOM is fully updated
         requestAnimationFrame(() => {
-          messagesEndRef.current?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end',
-            inline: 'nearest'
-          });
+          const container = messagesContainerRef.current;
+          if (container) {
+            container.scrollTo({
+              top: container.scrollHeight,
+              behavior: 'smooth'
+            });
+          }
         });
       }
     };
@@ -549,11 +551,11 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   // Auto-focus bottom and input on page load (desktop only)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-          inline: 'nearest'
+      if (messagesContainerRef.current) {
+        const container = messagesContainerRef.current;
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
         });
       }
       // Only auto-focus on desktop devices
@@ -569,11 +571,11 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   useEffect(() => {
     if (isSending) {
       const timer = setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end',
-            inline: 'nearest'
+        if (messagesContainerRef.current) {
+          const container = messagesContainerRef.current;
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
           });
         }
       }, 100);
@@ -639,9 +641,23 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   }, []);
 
   return (
-    <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden relative" style={{ height: '100vh', minHeight: '100vh' }}>
-      {/* Header with Connection Status - Fixed at top */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 flex justify-between items-center fixed top-0 left-0 right-0 z-10">
+    <>
+      {/* Custom styles for desktop responsive behavior */}
+      <style>{`
+        @media (min-width: 1024px) {
+          [data-mobile-padding="true"] {
+            padding-top: 1.5rem !important;
+            padding-bottom: 1.5rem !important;
+          }
+          [data-lg-style] {
+            top: auto !important;
+          }
+        }
+      `}</style>
+
+      <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden relative" style={{ height: '100vh', minHeight: '100vh' }}>
+      {/* Header with Connection Status - Fixed at top on mobile, relative on desktop */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 flex justify-between items-center fixed top-0 left-0 right-0 z-10 lg:relative lg:top-auto lg:left-auto lg:right-auto lg:z-auto">
         <div>
           <h2 className="font-semibold">TicTacToe AI Game</h2>
           <div className="flex items-center gap-2 text-sm opacity-90">
@@ -670,10 +686,10 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         )}
       </div>
 
-      {/* Video Section - Fixed position, won't get pushed by keyboard */}
-      <div className={`bg-black transition-all duration-300 fixed left-0 right-0 z-10 ${
+      {/* Video Section - Fixed position on mobile, relative on desktop */}
+      <div className={`bg-black transition-all duration-300 fixed left-0 right-0 z-10 lg:relative lg:left-auto lg:right-auto lg:z-auto ${
         isVideoExpanded ? 'h-48 lg:h-64' : 'h-12'
-      }`} style={{ top: '64px' }}>
+      }`} style={{ top: '64px' }} data-lg-style="top: auto">{/* Note: style will be overridden on desktop */}
         {isVideoExpanded ? (
           <div className="h-full relative">
             {isConnected ? (
@@ -750,10 +766,10 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       </div>
 
       {/* Messages Area - Will naturally resize when keyboard appears */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0" style={{
-        paddingTop: isVideoExpanded ? '256px' : '112px', // Account for fixed header + video
-        paddingBottom: '88px' // Account for fixed input section
-      }}>
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0 lg:p-6" style={{
+        paddingTop: isVideoExpanded ? '256px' : '112px', // Account for fixed header + video on mobile
+        paddingBottom: '88px' // Account for fixed input section on mobile
+      }} data-mobile-padding="true">{/* Custom CSS will handle desktop */}
         {messages.length === 0 && (
           <div className="text-center text-gray-500 py-8">
             <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -796,8 +812,8 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         <div ref={messagesEndRef} className="h-1" />
       </div>
 
-      {/* Input Section - Fixed at bottom of viewport */}
-      <div className="border-t bg-gray-50 p-4 fixed bottom-0 left-0 right-0 z-10">
+      {/* Input Section - Fixed at bottom on mobile, relative on desktop */}
+      <div className="border-t bg-gray-50 p-4 fixed bottom-0 left-0 right-0 z-10 lg:relative lg:bottom-auto lg:left-auto lg:right-auto lg:z-auto">
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -822,6 +838,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 

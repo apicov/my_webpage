@@ -1,13 +1,12 @@
 # Modular TicTacToe State Machine
 import os
 import random
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from abc import ABC, abstractmethod
 from enum import Enum
 from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langgraph.prebuilt import create_react_agent
 from .tic_tac_toe_tools import TicTacToeTools
 
 try:
@@ -38,6 +37,14 @@ class PlayerReadyResponse(BaseModel):
 class MoveResponse(BaseModel):
     move: Optional[int] = Field(None, description="ONLY extract the cell number (1-9) if user explicitly makes a move or select your move if it is your turn. Leave None if not explicitly stated.")
     reply: str = Field(..., description="A friendly response acknowledging the input and guiding the conversation forward")
+
+class UserMoveExtraction(BaseModel):
+    user_move: Optional[int] = Field(None, description="Extract the cell number (1-9) if user explicitly specifies a move. Leave None if no move specified.")
+    has_move: bool = Field(False, description="True if user is making a move, False if just chatting")
+
+class AIMoveGeneration(BaseModel):
+    ai_move: int = Field(..., description="The AI's chosen move position (1-9)")
+    response_message: str = Field(..., description="Friendly response about the AI's move and current game state")
 
 class GameState:
     """Centralized game state management"""
@@ -124,17 +131,8 @@ class ToolsManager:
     """Manages tool interactions"""
     def __init__(self, config: GameConfig):
         self.tools = TicTacToeTools(config.led_matrix_url, agent_name="Agent")
-        self.tools.unbind_all_tools()
-        # Bind tools - removed "status" to prevent turn confusion
-        self.tools.bind_tools(["move", "win_anim", "draw_anim"])
-
-        # Create ReAct agent
-        llm = ChatGroq(
-            groq_api_key=os.getenv('GROQ_API_KEY'),
-            model_name=config.llm_model,
-            temperature=config.llm_temperature
-        )
-        self.agent = create_react_agent(llm, self.tools.get_tools())
+        # We no longer need to bind/unbind tools since we're calling API methods directly
+        # No ReAct agent needed - using structured approach
 
     def start_video_stream(self, is_retry=False):
         """Start video stream via local Flask stream endpoint"""
@@ -402,87 +400,185 @@ class EndgameStateHandler(StateHandler):
         return state_machine.handlers["welcome"].handle(state_machine, message)
 
 class PlayingStateHandler(StateHandler):
-    """Handles gameplay state logic"""
+    """Handles gameplay state logic with structured approach"""
 
     def handle(self, state_machine, message: str) -> str:
         if state_machine.state.add_sys_prompt_flag:
             state_machine.state.add_sys_prompt_flag = False
-            system_prompt = PromptManager.get_playing_prompt(
-                state_machine.state.player_name,
-                state_machine.state.ai_name,
-                state_machine.state.player_symbol,
-                state_machine.state.ai_symbol
-            )
-            state_machine.state.messages[0] = SystemMessage(content=system_prompt)
 
         try:
-            # Check game status before invoking agent to inject turn and board information
+            # Step 1: Get current game status to understand board state
             game_status = state_machine.tools_manager.tools.get_status()
-            current_turn = game_status.get('current_turn', '')
+            current_turn = game_status.get('current_player', '')
             board = game_status.get('board', [])
+            available_positions = [i+1 for i, cell in enumerate(board) if cell == ' '] if board else []
 
-            # Format board for display (3x3 grid)
-            board_display = ""
-            if board and len(board) == 9:
-                board_display = f"""
-Current Board State:
-1: {board[0] if board[0] != ' ' else '1'} | 2: {board[1] if board[1] != ' ' else '2'} | 3: {board[2] if board[2] != ' ' else '3'}
-4: {board[3] if board[3] != ' ' else '4'} | 5: {board[4] if board[4] != ' ' else '5'} | 6: {board[5] if board[5] != ' ' else '6'}
-7: {board[6] if board[6] != ' ' else '7'} | 8: {board[7] if board[7] != ' ' else '8'} | 9: {board[8] if board[8] != ' ' else '9'}
+            print(f"Current turn: {current_turn}")
+            print(f"Available positions: {available_positions}")
 
-Available positions: {', '.join([str(i+1) for i, cell in enumerate(board) if cell == ' '])}
-"""
+            # Step 2: Extract user move (if any) with structured output
+            user_move_result = self._extract_user_move(state_machine, message, available_positions)
 
-            # Inject turn and board information into the conversation
+            # Step 3: Handle user move if provided
+            if user_move_result and user_move_result.has_move:
+                if user_move_result.user_move in available_positions:
+                    # Execute user move programmatically
+                    move_result = state_machine.tools_manager.tools.make_move(user_move_result.user_move)
+                    print(f"User move {user_move_result.user_move} executed: {move_result}")
+
+                    # Check if game ended after user move
+                    game_status = state_machine.tools_manager.tools.get_status()
+                    if self._check_game_ended(state_machine, game_status):
+                        return self._handle_game_end(state_machine, game_status)
+                else:
+                    # Invalid move - cell not available
+                    return f"Sorry, position {user_move_result.user_move} is not available. Please choose from: {', '.join(map(str, available_positions))}"
+
+            # Step 4: Check if it's AI's turn now
+            game_status = state_machine.tools_manager.tools.get_status()
+            current_turn = game_status.get('current_player', '')
+
             if current_turn == state_machine.state.ai_name:
-                turn_instruction = f"""IT IS YOUR TURN ({state_machine.state.ai_name}). Make your move now using ttt_make_move.
-{board_display}
-Choose the best strategic position from the available positions."""
-            elif current_turn == state_machine.state.player_name:
-                turn_instruction = f"""IT IS {state_machine.state.player_name}'S TURN. Wait for their move choice, then call ttt_make_move with their position.
-{board_display}
-When {state_machine.state.player_name} tells you their move, use ttt_make_move with that position."""
+                # Step 5: Generate AI move with structured output
+                board = game_status.get('board', [])
+                available_positions = [i+1 for i, cell in enumerate(board) if cell == ' '] if board else []
+
+                ai_move_result = self._generate_ai_move(state_machine, available_positions)
+
+                # Step 6: Execute AI move programmatically
+                if ai_move_result.ai_move in available_positions:
+                    move_result = state_machine.tools_manager.tools.make_move(ai_move_result.ai_move)
+                    print(f"AI move {ai_move_result.ai_move} executed: {move_result}")
+
+                    # Step 7: Check if game ended after AI move
+                    game_status = state_machine.tools_manager.tools.get_status()
+                    if self._check_game_ended(state_machine, game_status):
+                        return self._handle_game_end(state_machine, game_status)
+
+                    return ai_move_result.response_message
+                else:
+                    return "I had trouble making my move. Let me try again."
             else:
-                turn_instruction = f"Check whose turn it is and proceed accordingly.\n{board_display}"
-
-            # Add turn and board instruction as a temporary system message
-            messages_with_turn = state_machine.state.messages + [
-                SystemMessage(content=turn_instruction)
-            ]
-
-            # Use ReAct agent for gameplay
-            result = state_machine.tools_manager.agent.invoke({
-                "messages": messages_with_turn
-            })
-
-            # Reset error count on success
-            state_machine.error_handler.reset_error_count()
-
-            # Update conversation history
-            final_message = result["messages"][-1]
-            state_machine.state.messages = result["messages"]
-
-            # Check if game ended after this move
-            try:
-                game_status = state_machine.tools_manager.tools.get_status()
-                status = game_status.get('game_status')
-                print(f"Current game status: {status}")
-
-                # Check for actual end game statuses from LED matrix API
-                if status in ['ended_draw', 'ended_winner', 'ended']:
-                    # Game ended - transition to endgame state
-                    print(f"Game ended with status '{status}' - transitioning to endgame state")
-                    state_machine.state.transition_to('endgame')
-            except Exception as e:
-                print(f"Error checking game status: {e}")
-
-            return final_message.content
+                # It's player's turn - ask for their move
+                return f"It's your turn! Please choose a position from: {', '.join(map(str, available_positions))}"
 
         except Exception as e:
             return state_machine.error_handler.handle_error(
                 e, "playing state",
-                "I'm having trouble processing your move. Please specify a cell number from 1-9."
+                "I'm having trouble processing the game. Please try again."
             )
+
+    def _extract_user_move(self, state_machine, message: str, available_positions: list) -> Optional[UserMoveExtraction]:
+        """Extract user move from message using structured output"""
+        try:
+            extract_prompt = f"""Extract if the user is making a move in this message: "{message}"
+
+Available positions: {available_positions}
+
+Only extract a move if the user explicitly mentions a number 1-9 as their move choice."""
+
+            extraction_messages = [
+                SystemMessage(content=extract_prompt),
+                HumanMessage(content=message)
+            ]
+
+            return state_machine.llm_service.invoke_with_retry(
+                extraction_messages,
+                UserMoveExtraction
+            )
+        except Exception as e:
+            print(f"Error extracting user move: {e}")
+            return None
+
+    def _generate_ai_move(self, state_machine, available_positions: list) -> AIMoveGeneration:
+        """Generate AI move using structured output"""
+        strategy_prompt = f"""You are a strategic Tic-Tac-Toe AI player named {state_machine.state.ai_name}.
+
+Current available positions: {available_positions}
+You are playing as {state_machine.state.ai_symbol} against {state_machine.state.player_name} ({state_machine.state.player_symbol}).
+
+Strategy priority:
+1. Win if possible (complete your line)
+2. Block opponent's winning move
+3. Take center (5) if available
+4. Take corners (1,3,7,9) over edges (2,4,6,8)
+
+Choose your move from the available positions and provide a friendly response."""
+
+        ai_messages = [
+            SystemMessage(content=strategy_prompt),
+            HumanMessage(content="Make your move!")
+        ]
+
+        return state_machine.llm_service.invoke_with_retry(
+            ai_messages,
+            AIMoveGeneration
+        )
+
+    def _check_game_ended(self, state_machine, game_status: dict) -> bool:
+        """Check if game has ended"""
+        status = game_status.get('game_status', '')
+        return status in ['ended_draw', 'ended_winner', 'ended']
+
+    def _handle_game_end(self, state_machine, game_status: dict) -> str:
+        """Handle game end with appropriate animations and LLM-generated response"""
+        status = game_status.get('game_status', '')
+        winner = game_status.get('winner', '')
+
+        if status == 'ended_draw':
+            # Show draw animation
+            state_machine.tools_manager.tools.draw_animation()
+            scenario = "draw"
+        elif winner:
+            # Show win animation
+            winner_symbol = state_machine.state.player_symbol if winner == state_machine.state.player_name else state_machine.state.ai_symbol
+            state_machine.tools_manager.tools.win_animation(winner, winner_symbol)
+            scenario = "player_won" if winner == state_machine.state.player_name else "ai_won"
+        else:
+            scenario = "ended"
+
+        # Generate natural end game response using LLM
+        try:
+            end_prompt = f"""Generate a natural, friendly response for the end of a Tic-Tac-Toe game.
+
+Game context:
+- Player name: {state_machine.state.player_name}
+- AI name: {state_machine.state.ai_name}
+- Player symbol: {state_machine.state.player_symbol}
+- AI symbol: {state_machine.state.ai_symbol}
+- Game outcome: {scenario}
+
+Generate a personalized, conversational response that:
+- Acknowledges the game outcome appropriately
+- Maintains a friendly, engaging tone
+- Feels natural and not robotic
+- Congratulates the winner if there is one
+- Keeps it brief (1-2 sentences)
+
+Do not ask about playing again - just focus on the current game conclusion."""
+
+            end_messages = [
+                SystemMessage(content=end_prompt),
+                HumanMessage(content="Generate the end game response")
+            ]
+
+            response = state_machine.llm_service.simple_invoke(end_messages)
+            final_response = response.content
+        except Exception as e:
+            print(f"Error generating end game message: {e}")
+            # Fallback to simple messages
+            if scenario == "draw":
+                final_response = "It's a draw! Great game!"
+            elif scenario == "player_won":
+                final_response = f"Congratulations {state_machine.state.player_name}! You won!"
+            elif scenario == "ai_won":
+                final_response = f"I won this round! Good game, {state_machine.state.player_name}!"
+            else:
+                final_response = "Game ended!"
+
+        # Transition to endgame state
+        state_machine.state.transition_to('endgame')
+        return final_response
 
 # =============================================================================
 # MAIN STATE MACHINE
