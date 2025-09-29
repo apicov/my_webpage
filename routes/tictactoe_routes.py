@@ -12,6 +12,13 @@ tictactoe_bp = Blueprint('tictactoe', __name__)
 # Simple session tracking: user_id -> {'state_machine': TicTacToeStateMachine, 'last_activity': datetime}
 user_sessions = {}
 
+# Global game lock to prevent multiple users playing simultaneously
+current_player_lock = {
+    'user_id': None,
+    'locked_at': None,
+    'state': None  # Track current game state
+}
+
 # Game timeout (5 minutes of inactivity)
 GAME_TIMEOUT_MINUTES = 5
 
@@ -24,6 +31,50 @@ def cleanup_expired_sessions():
     ]
     for user_id in expired_users:
         del user_sessions[user_id]
+
+def is_game_locked_by_other_user(user_id):
+    """Check if game is locked by another user"""
+    global current_player_lock
+
+    # Check if lock exists and is not expired
+    if current_player_lock['user_id'] and current_player_lock['locked_at']:
+        # Check if lock is expired (5 minutes of inactivity)
+        if datetime.now() - current_player_lock['locked_at'] > timedelta(minutes=GAME_TIMEOUT_MINUTES):
+            # Lock expired, clear it and cleanup the user session
+            expired_user_id = current_player_lock['user_id']
+            current_player_lock = {'user_id': None, 'locked_at': None, 'state': None}
+
+            # Also clean up the user session for the expired user
+            if expired_user_id in user_sessions:
+                del user_sessions[expired_user_id]
+
+            return False
+
+        # Lock is active - check if it's a different user
+        return current_player_lock['user_id'] != user_id
+
+    return False
+
+def acquire_game_lock(user_id, state):
+    """Acquire game lock for user"""
+    global current_player_lock
+    current_player_lock = {
+        'user_id': user_id,
+        'locked_at': datetime.now(),
+        'state': state
+    }
+
+def release_game_lock(user_id):
+    """Release game lock if owned by user"""
+    global current_player_lock
+    if current_player_lock['user_id'] == user_id:
+        current_player_lock = {'user_id': None, 'locked_at': None, 'state': None}
+
+def update_game_lock_activity(user_id):
+    """Update lock activity timestamp"""
+    global current_player_lock
+    if current_player_lock['user_id'] == user_id:
+        current_player_lock['locked_at'] = datetime.now()
 
 def get_state_machine(user_id):
     """Get or create TicTacToe state machine for user"""
@@ -58,6 +109,19 @@ def tictactoe_chat():
 
         print(f"TicTacToe: user_id={user_id}, message={user_message}, state={user_state}")
 
+        # Check if game is locked by another user
+        if is_game_locked_by_other_user(user_id):
+            return jsonify({
+                'message': '🎮 Another player is currently playing. Please wait a few minutes and try again!',
+                'state': 'blocked'
+            })
+
+        # Acquire game lock immediately after confirming it's free
+        if not current_player_lock['user_id']:
+            acquire_game_lock(user_id, 'starting')
+        elif current_player_lock['user_id'] == user_id:
+            update_game_lock_activity(user_id)
+
         # Handle reset command
         if user_state == 'reset':
             if user_id in user_sessions:
@@ -69,7 +133,12 @@ def tictactoe_chat():
         state_machine = get_state_machine(user_id)
         response_message = state_machine.step(user_message)
 
-        return jsonify({'message': response_message, 'state': state_machine.state.current_state})
+        # Release lock only if game has naturally ended
+        current_state = state_machine.state.current_state
+        if current_state in ['ended_draw', 'ended_winner', 'ended']:
+            release_game_lock(user_id)
+
+        return jsonify({'message': response_message, 'state': current_state})
 
     except Exception as e:
         print(f"TicTacToe error: {e}")
@@ -91,6 +160,13 @@ def reset_game():
     try:
         data = request.get_json(silent=True)
         user_id = data.get('user_id') if data else None
+
+        # Check if game is locked by another user
+        if user_id and is_game_locked_by_other_user(user_id):
+            return jsonify({
+                'status': 'error',
+                'message': '🎮 Another player is currently playing. Cannot reset game.'
+            }), 403
 
         if user_id and user_id in user_sessions:
             user_sessions[user_id]['state_machine'].reset_state_machine()
