@@ -32,9 +32,13 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isSending, setIsSending] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [isInCooldown, setIsInCooldown] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const frontendTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cameraCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cameraViewingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const janusRef = useRef<any>(null);
   const streamingRef = useRef<any>(null);
 
@@ -125,6 +129,50 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       console.error('Failed to start camera stream:', error);
       setIsConnecting(false);
     }
+  };
+
+  // Handle endgame: 10-second camera viewing + 1-minute cooldown
+  const handleEndgame = () => {
+    console.log('Game ended - starting endgame sequence...');
+
+    // Start 1-minute cooldown immediately
+    startCooldown();
+
+    // Keep camera on for 10 seconds to view final animation
+    if (cameraViewingTimerRef.current) {
+      clearTimeout(cameraViewingTimerRef.current);
+    }
+
+    cameraViewingTimerRef.current = setTimeout(() => {
+      // Stop camera after 10 seconds
+      disconnectWebRTC();
+    }, 10000);
+  };
+
+  // Start 1-minute cooldown with countdown timer
+  const startCooldown = () => {
+    console.log('Starting 1-minute cooldown...');
+    setIsInCooldown(true);
+    setCooldownSeconds(60);
+
+    if (cooldownTimerRef.current) {
+      clearInterval(cooldownTimerRef.current);
+    }
+
+    cooldownTimerRef.current = setInterval(() => {
+      setCooldownSeconds(prev => {
+        if (prev <= 1) {
+          // Cooldown finished
+          setIsInCooldown(false);
+          if (cooldownTimerRef.current) {
+            clearInterval(cooldownTimerRef.current);
+            cooldownTimerRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   // Disconnect and stop camera stream
@@ -392,7 +440,14 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
   // Send message to TicTacToe game
   const sendMessage = async () => {
-    if (!inputMessage.trim() || isSending) return;
+    if (!inputMessage.trim() || isSending || isInCooldown) return;
+
+    // If this is the first message after endgame (cooldown just finished), reset the game
+    if (gameState === 'endgame') {
+      console.log('Resetting game after endgame...');
+      setMessages([]);  // Clear old messages
+      setGameState('welcome');
+    }
 
     const userMessage: ChatMessage = {
       role: 'user',
@@ -416,6 +471,11 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
         // Update game state
         setGameState(response.state);
+
+        // Handle endgame state
+        if (response.state === 'endgame') {
+          handleEndgame();
+        }
 
         // Check if camera started after sending message (for tic-tac-toe auto-start)
         // Only start auto-detection if not already connected
@@ -504,6 +564,18 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       }
     };
   }, [userId]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+      }
+      if (cameraViewingTimerRef.current) {
+        clearTimeout(cameraViewingTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="bg-white rounded-lg shadow-lg flex flex-col overflow-hidden h-full">
@@ -669,13 +741,16 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Type a message to start playing..."
-            disabled={isSending}
+            placeholder={isInCooldown
+              ? `Please wait ${cooldownSeconds} seconds before starting a new game...`
+              : "Type a message to start playing..."
+            }
+            disabled={isSending || isInCooldown}
             className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
           />
           <button
             onClick={sendMessage}
-            disabled={!inputMessage.trim() || isSending}
+            disabled={!inputMessage.trim() || isSending || isInCooldown}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             Send

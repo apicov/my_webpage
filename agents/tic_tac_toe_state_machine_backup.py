@@ -416,36 +416,20 @@ class PlayingStateHandler(StateHandler):
             state_machine.state.messages[0] = SystemMessage(content=system_prompt)
 
         try:
-            # Check game status before invoking agent to inject turn and board information
+            # Check game status before invoking agent to inject turn information
             game_status = state_machine.tools_manager.tools.get_status()
             current_turn = game_status.get('current_turn', '')
-            board = game_status.get('board', [])
 
-            # Format board for display (3x3 grid)
-            board_display = ""
-            if board and len(board) == 9:
-                board_display = f"""
-Current Board State:
-1: {board[0] if board[0] != ' ' else '1'} | 2: {board[1] if board[1] != ' ' else '2'} | 3: {board[2] if board[2] != ' ' else '3'}
-4: {board[3] if board[3] != ' ' else '4'} | 5: {board[4] if board[4] != ' ' else '5'} | 6: {board[5] if board[5] != ' ' else '6'}
-7: {board[6] if board[6] != ' ' else '7'} | 8: {board[7] if board[7] != ' ' else '8'} | 9: {board[8] if board[8] != ' ' else '9'}
-
-Available positions: {', '.join([str(i+1) for i, cell in enumerate(board) if cell == ' '])}
-"""
-
-            # Inject turn and board information into the conversation
+            # Inject turn information into the conversation
             if current_turn == state_machine.state.ai_name:
-                turn_instruction = f"""IT IS YOUR TURN ({state_machine.state.ai_name}). Make your move now using ttt_make_move.
-{board_display}
-Choose the best strategic position from the available positions."""
+                turn_instruction = f"IT IS YOUR TURN ({state_machine.state.ai_name}). Make your move now using ttt_make_move."
             elif current_turn == state_machine.state.player_name:
-                turn_instruction = f"""IT IS {state_machine.state.player_name}'S TURN. Wait for their move choice, then call ttt_make_move with their position.
-{board_display}
-When {state_machine.state.player_name} tells you their move, use ttt_make_move with that position."""
+                turn_instruction = f"IT IS {state_machine.state.player_name}'S TURN. Wait for their move choice, then call ttt_make_move with their position."
             else:
-                turn_instruction = f"Check whose turn it is and proceed accordingly.\n{board_display}"
+                turn_instruction = "Check whose turn it is and proceed accordingly."
 
-            # Add turn and board instruction as a temporary system message
+            # Add turn instruction as a temporary system message
+            from langchain_core.messages import SystemMessage
             messages_with_turn = state_machine.state.messages + [
                 SystemMessage(content=turn_instruction)
             ]

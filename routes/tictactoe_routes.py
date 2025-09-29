@@ -69,7 +69,7 @@ def tictactoe_chat():
         state_machine = get_state_machine(user_id)
         response_message = state_machine.step(user_message)
 
-        return jsonify({'message': response_message, 'state': 'playing'})
+        return jsonify({'message': response_message, 'state': state_machine.state.current_state})
 
     except Exception as e:
         print(f"TicTacToe error: {e}")
