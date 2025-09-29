@@ -71,7 +71,7 @@ interface TicTacToeMessage {
 
 interface TicTacToeResponse {
   message: string;
-  state: 'playing' | 'finished' | 'busy' | 'error';
+  state: 'welcome' | 'player_ready' | 'playing' | 'endgame' | 'finished' | 'busy' | 'error' | 'blocked';
 }
 
 export const chatWithTicTacToe = async (message: string, userId: string, state?: string): Promise<TicTacToeResponse> => {

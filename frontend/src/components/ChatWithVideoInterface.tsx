@@ -478,14 +478,24 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         // Update game state
         setGameState(response.state);
 
+        // Stop camera polling if game becomes blocked or has error
+        if (response.state === 'busy' || response.state === 'error' || response.state === 'blocked') {
+          if (cameraCheckIntervalRef.current) {
+            clearInterval(cameraCheckIntervalRef.current);
+            cameraCheckIntervalRef.current = null;
+            console.log('Stopped camera polling - game is blocked or has error');
+          }
+        }
+
         // Handle endgame state
         if (response.state === 'endgame') {
           handleEndgame();
         }
 
         // Check if camera started after sending message (for tic-tac-toe auto-start)
-        // Only start auto-detection if not already connected
-        if (!isConnected) {
+        // Only start auto-detection if not already connected AND game is not blocked
+        if (!isConnected && response.state !== 'busy' && response.state !== 'error' && response.state !== 'blocked') {
+          // Only start camera detection if the game is actually progressing (not blocked)
           setTimeout(() => {
             checkCameraStatusAndConnect();
 
