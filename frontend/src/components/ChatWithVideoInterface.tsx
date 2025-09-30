@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ChatMessage } from '../types';
 import { chatWithTicTacToe } from '../services/api';
 
@@ -825,7 +827,11 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
                   : 'bg-gray-100 text-gray-800'
               }`}
             >
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <div className="whitespace-pre-wrap prose prose-sm prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         ))}

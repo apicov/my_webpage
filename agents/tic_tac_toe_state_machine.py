@@ -638,23 +638,22 @@ IMPORTANT: In your response message, DO NOT show the board state or ASCII repres
 
         # Generate natural end game response using LLM
         try:
-            end_prompt = f"""Generate a natural, friendly response for the end of a Tic-Tac-Toe game.
+            end_prompt = f"""You are {state_machine.state.ai_name}, an AI player who just finished playing Tic-Tac-Toe against {state_machine.state.player_name}.
 
 Game context:
-- Player name: {state_machine.state.player_name}
-- AI name: {state_machine.state.ai_name}
-- Player symbol: {state_machine.state.player_symbol}
-- AI symbol: {state_machine.state.ai_symbol}
+- YOU played as {state_machine.state.ai_symbol}
+- {state_machine.state.player_name} played as {state_machine.state.player_symbol}
 - Game outcome: {scenario}
 
-Generate a personalized, conversational response that:
-- Acknowledges the game outcome appropriately
-- Maintains a friendly, engaging tone
-- Feels natural and not robotic
-- Congratulates the winner if there is one
-- Keeps it brief (1-2 sentences)
+Generate a personalized response from YOUR perspective as the AI player:
+- If you won: Be happy but gracious about your victory
+- If {state_machine.state.player_name} won: Congratulate them genuinely
+- If it's a draw: Acknowledge the good match
+- Speak as a participant who just played, not as an observer
+- Keep it brief, friendly, and engaging (1-2 sentences)
+- Use plain text - no markdown formatting
 
-Do not ask about playing again - just focus on the current game conclusion."""
+Do not ask about playing again - just react to how this game ended."""
 
             end_messages = [
                 SystemMessage(content=end_prompt),
