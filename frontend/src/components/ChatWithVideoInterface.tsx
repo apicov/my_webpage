@@ -163,9 +163,11 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     }
 
     cameraViewingTimerRef.current = setTimeout(() => {
+      console.log('15-second timer fired - disconnecting camera');
       // Stop camera after 15 seconds
       disconnectWebRTC();
     }, 15000);
+    console.log('15-second endgame timer started');
   };
 
   // Start 1-minute cooldown with countdown timer
@@ -196,6 +198,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
   // Disconnect and stop camera stream
   const disconnectWebRTC = async () => {
+    console.log('disconnectWebRTC called from:', new Error().stack);
     setIsDisconnecting(true);
 
     try {
@@ -507,8 +510,8 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         }
 
         // Check if camera started after sending message (for tic-tac-toe auto-start)
-        // Only start auto-detection if not already connected AND game is not blocked
-        if (!isConnected && response.state !== 'busy' && response.state !== 'error' && response.state !== 'blocked') {
+        // Only start auto-detection if not already connected AND game is not blocked or ended
+        if (!isConnected && response.state !== 'busy' && response.state !== 'error' && response.state !== 'blocked' && response.state !== 'endgame') {
           // Only start camera detection if the game is actually progressing (not blocked)
           setTimeout(() => {
             checkCameraStatusAndConnect();
