@@ -530,10 +530,28 @@ Choose your move from the available positions and provide a friendly response.""
             state_machine.tools_manager.tools.draw_animation()
             scenario = "draw"
         elif winner:
-            # Show win animation
-            winner_symbol = state_machine.state.player_symbol if winner == state_machine.state.player_name else state_machine.state.ai_symbol
-            state_machine.tools_manager.tools.win_animation(winner, winner_symbol)
-            scenario = "player_won" if winner == state_machine.state.player_name else "ai_won"
+            # Show win animation - winner is the symbol ('X' or 'O'), convert to name
+            print(f"Game ended with winner symbol: '{winner}'")
+            print(f"Player symbol: '{state_machine.state.player_symbol}', AI symbol: '{state_machine.state.ai_symbol}'")
+
+            if winner == state_machine.state.player_symbol:
+                # Player won
+                winner_name = state_machine.state.player_name
+                winner_symbol = state_machine.state.player_symbol
+                scenario = "player_won"
+            elif winner == state_machine.state.ai_symbol:
+                # AI won
+                winner_name = state_machine.state.ai_name
+                winner_symbol = state_machine.state.ai_symbol
+                scenario = "ai_won"
+            else:
+                # Fallback - shouldn't happen but handle gracefully
+                winner_name = "Unknown"
+                winner_symbol = winner
+                scenario = "ai_won"
+
+            print(f"Sending win animation with winner_name: '{winner_name}', winner_symbol: '{winner_symbol}'")
+            state_machine.tools_manager.tools.win_animation(winner_name, winner_symbol)
         else:
             scenario = "ended"
 

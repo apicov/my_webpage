@@ -137,22 +137,22 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     }
   };
 
-  // Handle endgame: 10-second camera viewing + 1-minute cooldown
+  // Handle endgame: 15-second camera viewing + 1-minute cooldown
   const handleEndgame = () => {
     console.log('Game ended - starting endgame sequence...');
 
     // Start 1-minute cooldown immediately
     startCooldown();
 
-    // Keep camera on for 10 seconds to view final animation
+    // Keep camera on for 15 seconds to view final animation
     if (cameraViewingTimerRef.current) {
       clearTimeout(cameraViewingTimerRef.current);
     }
 
     cameraViewingTimerRef.current = setTimeout(() => {
-      // Stop camera after 10 seconds
+      // Stop camera after 15 seconds
       disconnectWebRTC();
-    }, 10000);
+    }, 15000);
   };
 
   // Start 1-minute cooldown with countdown timer
