@@ -19,15 +19,15 @@ try:
     site_packages_path = '/home/pico/miniconda3/envs/lino/lib/python3.10/site-packages'
     sys.path.insert(0, site_packages_path)
 
+    # Add project directory to Python path
+    project_dir = '/var/www/apicov.xyz'
+    sys.path.insert(0, project_dir)
+
     # Add agents and routes directories to Python path for module imports
     agents_dir = os.path.join(project_dir, 'agents')
     routes_dir = os.path.join(project_dir, 'routes')
     sys.path.insert(0, agents_dir)
     sys.path.insert(0, routes_dir)
-
-    # Add project directory to Python path
-    project_dir = '/var/www/apicov.xyz'
-    sys.path.insert(0, project_dir)
 
     # CHANGE WORKING DIRECTORY - Add this line
     os.chdir(project_dir)  # Change to where your .env file is located
