@@ -499,8 +499,8 @@ class PlayingStateHandler(StateHandler):
                 else:
                     return "I had trouble making my move. Let me try again."
             else:
-                # It's player's turn - ask for their move
-                return f"It's your turn! Please choose a position from: {', '.join(map(str, available_positions))}"
+                # It's player's turn - generate engaging response asking for their move
+                return self._generate_player_turn_prompt(state_machine, available_positions)
 
         except Exception as e:
             return state_machine.error_handler.handle_error(
@@ -515,7 +515,20 @@ class PlayingStateHandler(StateHandler):
 
 Available positions: {available_positions}
 
-Only extract a move if the user explicitly mentions a number 1-9 as their move choice."""
+POSITION MAPPING (3x3 grid):
+1 2 3
+4 5 6
+7 8 9
+
+The user can specify their move in several ways:
+- Numbers: "1", "2", "3", etc.
+- Positions: "top left" (1), "top middle/center" (2), "top right" (3)
+- "middle left" (4), "center/middle" (5), "middle right" (6)
+- "bottom left" (7), "bottom middle/center" (8), "bottom right" (9)
+- Corners: "corner" could mean any corner (1,3,7,9)
+- Other natural language that clearly indicates a position
+
+Extract the move number (1-9) if the user is making a move choice, even if they use natural language."""
 
             extraction_messages = [
                 SystemMessage(content=extract_prompt),
@@ -529,6 +542,36 @@ Only extract a move if the user explicitly mentions a number 1-9 as their move c
         except Exception as e:
             print(f"Error extracting user move: {e}")
             return None
+
+    def _generate_player_turn_prompt(self, state_machine, available_positions: list) -> str:
+        """Generate engaging player turn prompt when no specific move is provided"""
+        try:
+            prompt = f"""You are {state_machine.state.ai_name}, playing Tic-Tac-Toe against {state_machine.state.player_name}.
+
+{state_machine.state.player_name} sent a message but didn't specify a specific position to play.
+
+Available positions: {available_positions}
+
+Generate an engaging response asking them to choose a position:
+- Be fun and encouraging
+- Mention the available positions naturally
+- Add personality and playful competition
+- Keep it brief and conversational
+- Example: "Your move, {state_machine.state.player_name}! Pick from {', '.join(map(str, available_positions[:3]))} or any other open spot. Where will you strike next?"
+
+Make it feel like a friendly competitor prompting their next move."""
+
+            messages = [
+                SystemMessage(content=prompt),
+                HumanMessage(content="Generate the player turn prompt")
+            ]
+
+            response = state_machine.llm_service.simple_invoke(messages)
+            return response.content
+        except Exception as e:
+            print(f"Error generating player turn prompt: {e}")
+            # Fallback to improved but simple message
+            return f"Your turn, {state_machine.state.player_name}! Choose from positions: {', '.join(map(str, available_positions))}"
 
     def _generate_ai_move(self, state_machine, available_positions: list) -> AIMoveGeneration:
         """Generate AI move using structured output"""
