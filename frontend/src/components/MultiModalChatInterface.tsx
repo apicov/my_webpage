@@ -22,7 +22,7 @@ interface MultiModalChatInterfaceProps {
   userInfo?: any;
 }
 
-const MultiModalChatInterface: React.FC<MultiModalChatInterfaceProps> = ({ onAgentSwitch, userInfo }) => {
+const MultiModalChatInterface: React.FC<MultiModalChatInterfaceProps> = ({ onAgentSwitch: _, userInfo }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -31,9 +31,9 @@ const MultiModalChatInterface: React.FC<MultiModalChatInterfaceProps> = ({ onAge
   });
   const [isDisplayExpanded, setIsDisplayExpanded] = useState(true);
   const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  // const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const isProcessingRef = useRef(false);
 
   const initialMessage = `Hi! I'm ${userInfo?.name || 'Your Name'}'s AI assistant. I'm here to provide information about his professional background, skills, and experience. I can help you learn more about his career, projects, and achievements. I can also show you live hardware demos, display sensor data, and more. What would you like to know?`;
@@ -270,13 +270,13 @@ function controlHardware(device, action) {
   };
 
   // Clear chat function
-  const clearChat = () => {
-    setMessages([{
-      role: 'assistant',
-      content: initialMessage
-    }]);
-    setDisplayContent({ type: 'welcome' });
-  };
+  // const clearChat = () => {
+  //   setMessages([{
+  //     role: 'assistant',
+  //     content: initialMessage
+  //   }]);
+  //   setDisplayContent({ type: 'welcome' });
+  // };
 
   // Send message
   const sendMessage = async () => {

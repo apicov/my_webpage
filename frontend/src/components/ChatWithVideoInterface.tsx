@@ -13,8 +13,8 @@ interface ChatWithVideoInterfaceProps {
   onHardwareStatusUpdate?: (status: Record<string, any>) => void;
 }
 
-const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({ 
-  onHardwareStatusUpdate 
+const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
+  onHardwareStatusUpdate: _
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -22,10 +22,8 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isVideoExpanded, setIsVideoExpanded] = useState(true);
-  const [hardwareStatus, setHardwareStatus] = useState<Record<string, any>>({});
   const [userId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [gameState, setGameState] = useState<string>('waiting');
-  const [gameBoard, setGameBoard] = useState<number[][]>([[0,0,0],[0,0,0],[0,0,0]]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -79,17 +77,17 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   };
 
   // Connect to existing camera stream (WebRTC only, no camera start)
-  const connectToExistingStream = async (janusUrl: string) => {
-    setIsConnecting(true);
-    try {
-      await initializeJanus(janusUrl);
-      startFrontendTimer();
-    } catch (error) {
-      console.error('Failed to connect to existing stream:', error);
-      setIsConnected(false);
-      setIsConnecting(false);
-    }
-  };
+  // const connectToExistingStream = async (janusUrl: string) => {
+  //   setIsConnecting(true);
+  //   try {
+  //     await initializeJanus(janusUrl);
+  //     startFrontendTimer();
+  //   } catch (error) {
+  //     console.error('Failed to connect to existing stream:', error);
+  //     setIsConnected(false);
+  //     setIsConnecting(false);
+  //   }
+  // };
 
   // Start camera stream via unified API
   const initWebRTC = async () => {
@@ -103,9 +101,9 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         }
       });
 
-      const result = await response.json();
+      const _result = await response.json();
 
-      if (result.status === 'success') {
+      if (_result.status === 'success') {
         // Camera started successfully
         setIsConnected(true);
         setIsConnecting(false);
@@ -118,7 +116,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
         // Initialize Janus WebRTC connection
         try {
-          await initializeJanus(result.janus_url);
+          await initializeJanus(_result.janus_url);
           // Start 5-minute frontend timer
           startFrontendTimer();
         } catch (janusError) {
@@ -128,7 +126,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         }
 
       } else {
-        throw new Error(result.message || 'Failed to start camera stream');
+        throw new Error(_result.message || 'Failed to start camera stream');
       }
 
     } catch (error) {
@@ -195,6 +193,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       });
 
       const result = await response.json();
+      console.log('Camera stream stop result:', result);
 
       // Clean up Janus connections
       if (streamingRef.current) {
@@ -345,33 +344,33 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   };
 
   // Check camera status periodically to detect auto-disconnect
-  const startStatusPolling = () => {
-    // Clear existing interval
-    if (pingIntervalRef.current) {
-      clearInterval(pingIntervalRef.current);
-    }
+  // const startStatusPolling = () => {
+  //   // Clear existing interval
+  //   if (pingIntervalRef.current) {
+  //     clearInterval(pingIntervalRef.current);
+  //   }
 
-    // Check status every 30 seconds
-    pingIntervalRef.current = setInterval(async () => {
-      try {
-        const response = await fetch('/api/stream/status');
-        const result = await response.json();
+  //   // Check status every 30 seconds
+  //   pingIntervalRef.current = setInterval(async () => {
+  //     try {
+  //       const response = await fetch('/api/stream/status');
+  //       const result = await response.json();
 
-        if (result.status === 'success') {
-          if (!result.running && isConnected) {
-            // Camera was auto-disconnected
-            console.log('Camera auto-disconnected by server');
-            handleAutoDisconnect();
-          } else if (result.running) {
-            // Update remaining time
-            setTimeRemaining(result.time_remaining_minutes);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to check camera status:', error);
-      }
-    }, 30000); // 30 seconds
-  };
+  //       if (result.status === 'success') {
+  //         if (!result.running && isConnected) {
+  //           // Camera was auto-disconnected
+  //           console.log('Camera auto-disconnected by server');
+  //           handleAutoDisconnect();
+  //         } else if (result.running) {
+  //           // Update remaining time
+  //           setTimeRemaining(result.time_remaining_minutes);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Failed to check camera status:', error);
+  //     }
+  //   }, 30000); // 30 seconds
+  // };
 
   // Start 5-minute frontend timer
   const startFrontendTimer = () => {
