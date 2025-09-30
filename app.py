@@ -29,16 +29,10 @@ chat_agent = ChatAgent(name, last_name, summary, resume)
 # Attach chat agent to main blueprint so routes can access it
 main_bp.chat_agent = chat_agent
 
-# Register blueprints with dual routes for dev/prod compatibility
-app.register_blueprint(main_bp)
-
-# Stream routes - available at both /stream/* and /api/stream/*
-app.register_blueprint(stream_bp, url_prefix='/stream')
-app.register_blueprint(stream_bp, url_prefix='/api/stream')
-
-# TicTacToe routes - available at both /tictactoe/* and /api/tictactoe/*
-app.register_blueprint(tictactoe_bp, url_prefix='/tictactoe')
-app.register_blueprint(tictactoe_bp, url_prefix='/api/tictactoe')
+# Register blueprints
+app.register_blueprint(main_bp)  # Has dual routes built-in: /chat and /api/chat
+app.register_blueprint(stream_bp, url_prefix='/stream')  # Will add Apache route for /stream
+app.register_blueprint(tictactoe_bp)  # Has dual routes built-in: /chat and /api/tictactoe/chat
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

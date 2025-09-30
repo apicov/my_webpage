@@ -177,10 +177,12 @@ Create `/etc/apache2/sites-available/YOUR_DOMAIN.conf`:
         RewriteRule . /index.html [L]
     </Directory>
 
-    # Flask API endpoint
+    # Flask API endpoints
     WSGIDaemonProcess YOUR_DOMAIN python-home=/path/to/your/python/env python-path=/path/to/your/site-packages
     WSGIProcessGroup YOUR_DOMAIN
     WSGIScriptAlias /api /var/www/YOUR_DOMAIN/wsgi.py
+    WSGIScriptAlias /stream /var/www/YOUR_DOMAIN/wsgi.py
+    WSGIScriptAlias /tictactoe /var/www/YOUR_DOMAIN/wsgi.py
 
     <Directory /var/www/YOUR_DOMAIN>
         WSGIApplicationGroup %{GLOBAL}
