@@ -1,6 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage } from '../types';
 import { chatWithTicTacToe } from '../services/api';
+
+// Get API base URL for stream endpoints
+const getApiBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  if (import.meta.env.MODE === 'production') {
+    return '/api';
+  } else {
+    return '/api';
+  }
+};
+
+const API_BASE = getApiBaseUrl();
 // Temporarily commented out Janus import to test if it's breaking the site
 // @ts-ignore - Janus library doesn't have proper TypeScript definitions
 // const Janus = require('janus-gateway');
@@ -56,7 +71,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   // Check if camera is running and auto-connect if needed
   const checkCameraStatusAndConnect = async () => {
     try {
-      const response = await fetch('/api/stream/status');
+      const response = await fetch(`${API_BASE}/stream/status`);
       const result = await response.json();
 
       if (result.status === 'success' && result.running && !isConnected && !isConnecting) {
@@ -94,7 +109,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     setIsConnecting(true);
     try {
       // Call our Flask server to start the camera stream
-      const response = await fetch('/api/stream/start', {
+      const response = await fetch(`${API_BASE}/stream/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -185,7 +200,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
 
     try {
       // Call our Flask server to stop the camera stream
-      const response = await fetch('/api/stream/stop', {
+      const response = await fetch(`${API_BASE}/stream/stop`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -353,7 +368,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   //   // Check status every 30 seconds
   //   pingIntervalRef.current = setInterval(async () => {
   //     try {
-  //       const response = await fetch('/api/stream/status');
+  //       const response = await fetch(`${API_BASE}/stream/status`);
   //       const result = await response.json();
 
   //       if (result.status === 'success') {
