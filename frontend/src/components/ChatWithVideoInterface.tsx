@@ -136,6 +136,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
           startFrontendTimer();
         } catch (janusError) {
           console.error('Janus connection failed:', janusError);
+          console.log('Setting isConnected=false due to Janus error, stack:', new Error().stack);
           setIsConnected(false);
           setIsConnecting(false);
         }
@@ -230,6 +231,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         peerConnectionRef.current = null;
       }
 
+      console.log('Setting isConnected=false in disconnectWebRTC, stack:', new Error().stack);
       setIsConnected(false);
       setIsConnecting(false);
       setIsDisconnecting(false);
@@ -247,6 +249,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
       }
 
       if (videoRef.current) {
+        console.log('Setting videoRef.current.srcObject = null in disconnectWebRTC, stack:', new Error().stack);
         videoRef.current.srcObject = null;
       }
 
@@ -439,12 +442,14 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
     }
 
     // Update UI state
+    console.log('Setting isConnected=false in handleAutoDisconnect, stack:', new Error().stack);
     setIsConnected(false);
     setIsConnecting(false);
     setTimeRemaining(null);
 
     // Clear video
     if (videoRef.current) {
+      console.log('Setting videoRef.current.srcObject = null in handleAutoDisconnect, stack:', new Error().stack);
       videoRef.current.srcObject = null;
     }
 
@@ -493,6 +498,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
         setMessages(prev => [...prev, assistantMessage]);
 
         // Update game state
+        console.log('Setting gameState to:', response.state, 'isConnected:', isConnected);
         setGameState(response.state);
 
         // Stop camera polling if game becomes blocked or has error

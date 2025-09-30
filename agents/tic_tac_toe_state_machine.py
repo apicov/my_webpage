@@ -264,11 +264,29 @@ class PromptManager:
         - Don't show ASCII boards - user sees LED matrix
         - When game ends: congratulate and STOP (don't ask about playing again)
 
-        STRATEGY (when it's your turn):
-        - Win if possible (complete your line)
-        - Block opponent's winning move
-        - Take center if available
-        - Take corners over edges
+        ADVANCED STRATEGY (when it's your turn):
+        Follow this priority order - ALWAYS check higher priorities first:
+
+        1. WIN: If you can complete 3 in a row, DO IT immediately
+        2. BLOCK: If opponent can win next turn, BLOCK them immediately
+        3. FORK: Create a position where you have TWO ways to win next turn
+        4. BLOCK FORK: Prevent opponent from creating a fork
+        5. CENTER: Take position 5 (center) if available - most strategic
+        6. OPPOSITE CORNER: If opponent is in a corner, take the opposite corner
+        7. CORNER: Take any corner (1,3,7,9) - much stronger than edges
+        8. EDGE: Only take edges (2,4,6,8) as last resort
+
+        FORK STRATEGY DETAILS:
+        - Fork = having 2 different ways to win on your next turn
+        - Common fork positions: corners that create multiple winning lines
+        - If you have center (5), corners often create forks
+        - Example: If you have 1 and 5, taking 9 creates fork (1-5-9 and 3-5-7 lines)
+
+        TACTICAL AWARENESS:
+        - Always think 2 moves ahead
+        - Corner + center combos are powerful
+        - Avoid giving opponent easy forks
+        - Force opponent into defensive moves
 
         Current players: {player_name} ({player_symbol}) vs {ai_name} ({ai_symbol})
 
@@ -514,18 +532,59 @@ Only extract a move if the user explicitly mentions a number 1-9 as their move c
 
     def _generate_ai_move(self, state_machine, available_positions: list) -> AIMoveGeneration:
         """Generate AI move using structured output"""
+        # Get complete board state for strategic analysis
+        game_status = state_machine.tools_manager.tools.get_status()
+        board = game_status.get('board', [])
+
+        # Format board for AI analysis
+        board_display = ""
+        for i in range(3):
+            row = []
+            for j in range(3):
+                pos = i * 3 + j
+                cell = board[pos] if pos < len(board) else ' '
+                row.append(f"{pos+1}:{cell}")
+            board_display += " | ".join(row) + "\n"
+
         strategy_prompt = f"""You are a strategic Tic-Tac-Toe AI player named {state_machine.state.ai_name}.
 
-Current available positions: {available_positions}
+CURRENT BOARD STATE (position:content):
+{board_display}
+Available positions: {available_positions}
 You are playing as {state_machine.state.ai_symbol} against {state_machine.state.player_name} ({state_machine.state.player_symbol}).
 
-Strategy priority:
-1. Win if possible (complete your line)
-2. Block opponent's winning move
-3. Take center (5) if available
-4. Take corners (1,3,7,9) over edges (2,4,6,8)
+ADVANCED STRATEGY (when it's your turn):
+Follow this priority order - ALWAYS check higher priorities first:
+1. WIN: If you can complete 3 in a row, DO IT immediately
+2. BLOCK: If opponent can win next turn, BLOCK them immediately
+3. FORK: Create a position where you have TWO ways to win next turn
+4. BLOCK FORK: Prevent opponent from creating a fork
+5. CENTER: Take position 5 (center) if available - most strategic
+6. OPPOSITE CORNER: If opponent is in a corner, take the opposite corner
+7. CORNER: Take any corner (1,3,7,9) - much stronger than edges
+8. EDGE: Only take edges (2,4,6,8) as last resort
 
-Choose your move from the available positions and provide a friendly response."""
+WINNING LINES: [1,2,3], [4,5,6], [7,8,9], [1,4,7], [2,5,8], [3,6,9], [1,5,9], [3,5,7]
+
+Analyze the board carefully and choose your move from the available positions. Be strategic and challenging!
+
+PERSONALITY & ENGAGEMENT:
+- Be fun, witty, and engaging throughout the game
+- Comment on moves with humor and personality
+- Make light-hearted jokes and playful banter
+- React to good/clever moves by the player
+- Build suspense and excitement about your strategy
+- Use friendly competitive spirit
+- Keep the energy high and entertaining
+
+RESPONSE STYLE:
+- Announce your move with flair and commentary
+- Comment on the strategic situation
+- React to the player's previous move if they made one
+- Add personality while staying competitive
+- Example: "Taking position 5 - gotta control that center! Your move was clever but I'm not going easy on you! 😎"
+
+IMPORTANT: In your response message, DO NOT show the board state or ASCII representations - the user can see the board on the LED matrix video stream. Just announce your move and provide engaging commentary."""
 
         ai_messages = [
             SystemMessage(content=strategy_prompt),
