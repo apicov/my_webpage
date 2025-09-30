@@ -31,7 +31,7 @@ main_bp.chat_agent = chat_agent
 
 # Register blueprints
 app.register_blueprint(main_bp)  # Has dual routes built-in: /chat and /api/chat
-app.register_blueprint(stream_bp, url_prefix='/stream')  # Will add Apache route for /stream
+app.register_blueprint(stream_bp)  # Stream routes have /stream built-in
 app.register_blueprint(tictactoe_bp)  # Has dual routes built-in: /chat and /api/tictactoe/chat
 
 if __name__ == '__main__':
