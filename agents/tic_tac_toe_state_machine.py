@@ -147,11 +147,31 @@ class ToolsManager:
                                    headers={'Content-Type': 'application/json'},
                                    timeout=10)
             print(f"Video stream {action} response: {response.status_code}")
+            print(f"Response headers: {dict(response.headers)}")
+            print(f"Response content length: {len(response.text)}")
+            print(f"Raw response content: '{response.text}'")
+
             if response.status_code == 200:
-                result = response.json()
-                print(f"Stream API result: {result}")
-                return result.get('status') == 'success'
-            return False
+                # Check if response has content before trying to parse JSON
+                if response.text.strip():
+                    try:
+                        result = response.json()
+                        print(f"Stream API result: {result}")
+                        return result.get('status') == 'success'
+                    except ValueError as json_error:
+                        print(f"Failed to parse JSON response: {json_error}")
+                        print(f"Response is not valid JSON")
+                        # If it's not JSON but status 200, maybe it's a plain text success?
+                        if 'success' in response.text.lower():
+                            print("Assuming success based on response content")
+                            return True
+                        return False
+                else:
+                    print("Empty response received - this suggests an internal error")
+                    return False
+            else:
+                print(f"Non-200 status code: {response.status_code}")
+                return False
         except Exception as e:
             print(f"Failed to {action} video stream: {e}")
             return False
