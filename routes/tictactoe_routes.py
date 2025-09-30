@@ -97,7 +97,7 @@ def get_state_machine(user_id):
 
     return user_sessions[user_id]['state_machine']
 
-@tictactoe_bp.route('/chat', methods=['POST'])
+@tictactoe_bp.route('/tictactoe/chat', methods=['POST'])
 @tictactoe_bp.route('/api/tictactoe/chat', methods=['POST'])
 def tictactoe_chat():
     """TicTacToe chat endpoint"""
@@ -144,7 +144,7 @@ def tictactoe_chat():
         print(f"TicTacToe error: {e}")
         return jsonify({'message': '🚫 Error occurred. Try again.', 'state': 'error'}), 500
 
-@tictactoe_bp.route('/status', methods=['GET'])
+@tictactoe_bp.route('/tictactoe/status', methods=['GET'])
 @tictactoe_bp.route('/api/tictactoe/status', methods=['GET'])
 def game_status():
     """Get current game status"""
@@ -153,7 +153,7 @@ def game_status():
         'active_sessions': len(user_sessions)
     })
 
-@tictactoe_bp.route('/reset', methods=['POST'])
+@tictactoe_bp.route('/tictactoe/reset', methods=['POST'])
 @tictactoe_bp.route('/api/tictactoe/reset', methods=['POST'])
 def reset_game():
     """Reset the current game"""
