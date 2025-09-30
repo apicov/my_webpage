@@ -72,7 +72,6 @@ def get_time_remaining():
     remaining = timedelta(minutes=CAMERA_TIMEOUT_MINUTES) - elapsed
     return max(0, int(remaining.total_seconds() / 60))
 
-@stream_bp.route('/stream/start', methods=['POST'])
 @stream_bp.route('/api/stream/start', methods=['POST'])
 def start_stream():
     """Start camera and stream - unified endpoint"""
@@ -125,7 +124,6 @@ def start_stream():
             'message': f'Stream start failed: {str(e)}'
         }), 500
 
-@stream_bp.route('/stream/stop', methods=['POST'])
 @stream_bp.route('/api/stream/stop', methods=['POST'])
 def stop_stream():
     """Stop camera and stream - unified endpoint"""
@@ -157,7 +155,6 @@ def stop_stream():
             'message': f'Stream stop failed: {str(e)}'
         }), 500
 
-@stream_bp.route('/stream/status', methods=['GET'])
 @stream_bp.route('/api/stream/status', methods=['GET'])
 def stream_status():
     """Get current stream status"""

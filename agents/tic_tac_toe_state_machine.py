@@ -142,7 +142,7 @@ class ToolsManager:
             # Call the local Flask stream endpoint (same as frontend does)
             # Use environment variable for base URL, fallback to localhost for development
             base_url = os.getenv('FLASK_BASE_URL', 'http://localhost:5000')
-            url = f"{base_url}/stream/start"
+            url = f"{base_url}/api/stream/start"
             response = requests.post(url,
                                    headers={'Content-Type': 'application/json'},
                                    timeout=10)

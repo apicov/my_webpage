@@ -56,7 +56,7 @@ const ChatWithVideoInterface: React.FC<ChatWithVideoInterfaceProps> = ({
   // Check if camera is running and auto-connect if needed
   const checkCameraStatusAndConnect = async () => {
     try {
-      const response = await fetch('/stream/status');
+      const response = await fetch('/api/stream/status');
       const result = await response.json();
 
       if (result.status === 'success' && result.running && !isConnected && !isConnecting) {
