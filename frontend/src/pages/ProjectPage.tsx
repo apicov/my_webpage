@@ -65,11 +65,11 @@ const ProjectPage: React.FC = () => {
         
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {project.thumbnail && (
-            <div className="h-96 overflow-hidden">
-              <img 
-                src={project.thumbnail} 
+            <div className="h-96 overflow-hidden bg-gray-100 flex items-center justify-center">
+              <img
+                src={project.thumbnail}
                 alt={project.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
           )}
